@@ -15,7 +15,8 @@ https://www.youtube.com/watch?v=4HEG2ryBzrQ
 ## additional 
 - installation instructions are mostly at build_release.ipynb 
 - you may build it to cython by using build_release.ipynb
-
+## bans?
+if <4 hours a day, ok
 ## history
 3.19 originally it was a heist runner:
 - https://youtu.be/l6Xw_sdK7p8
