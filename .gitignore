@@ -10,6 +10,10 @@
 # !1_host/
 # !1_host/**
 
+!hud_dpb/
+!hud_dpb/ExileApi/
+!hud_dpb/ExileApi/Core/
+!hud_dpb/ExileApi/Core/Plugins/
 !hud_dpb/ExileApi/Core/Plugins/ShareData/
 !hud_dpb/ExileApi/Core/Plugins/ShareData/**
 
