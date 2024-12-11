@@ -1,7 +1,8 @@
 *
 !.gitignore
 !0_guest/
-!1_host/
+!./1_host/
+# !3_main_coordinator/
 !hud_dpb/ExileApi/Core/Plugins/ShareData/
 !bat_aqueduct.bat
 !bat_atlas_rush_bama.bat
