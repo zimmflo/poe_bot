@@ -1,7 +1,7 @@
 *
 !.gitignore
 !0_guest/
-# !1_host/
+!1_host/
 
 !hud_dpb/ExileApi/Core/Plugins/ShareData
 
