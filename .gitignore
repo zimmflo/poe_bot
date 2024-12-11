@@ -7,8 +7,9 @@
 !0_guest/
 !0_guest/**
 
-# !1_host/
-# !1_host/**
+!1_host/
+!1_host/**
+
 
 !hud_dpb/
 !hud_dpb/ExileApi/
@@ -24,3 +25,6 @@
 !price_check.bat
 !quest_ranger.bat
 !quest_witch.bat
+
+**/__pycache__/
+**/.vscode/
