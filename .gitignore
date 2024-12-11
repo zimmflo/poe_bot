@@ -1,18 +1,22 @@
 *
 !.gitignore
+!build_release.ipynb
+!setup.py
+!readme.md
+
 !0_guest/
 !0_guest/**
+
 # !1_host/
 # !1_host/**
+
 !hud_dpb/ExileApi/Core/Plugins/ShareData/
-!hud_dpb/ExileApi/Core/Plugins/ShareData/** */
+!hud_dpb/ExileApi/Core/Plugins/ShareData/**
+
 !bat_aqueduct.bat
 !bat_atlas_rush_bama.bat
 !bat_atlas_rush_pconc.bat
 !bat_atlas_rush_vg.bat
-!build_release.ipynb
 !price_check.bat
 !quest_ranger.bat
 !quest_witch.bat
-!setup.py
-!readme.md
