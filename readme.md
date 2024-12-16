@@ -1,3 +1,18 @@
+# poe 2
+
+https://www.youtube.com/watch?v=iqsUQxLxnJw - 
+
+## how to
+run start.bat from 0_guest on your virtual machine
+
+run ExileApi with plugin from hud_dpb/ExileCore2/Plugins/Source on your virtual machine
+
+run poe2_lost_city.bat on your host machine
+
+how to run: https://www.youtube.com/watch?v=4HEG2ryBzrQ
+
+result: https://www.youtube.com/watch?v=iqsUQxLxnJw 
+
 # poe 1
 
 ## how to?

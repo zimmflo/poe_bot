@@ -95,12 +95,6 @@ from utils.combat import AutoFlasks
 auto_flasks = AutoFlasks(poe_bot=poe_bot)
 
 
-# In[ ]:
-
-
-auto_flasks.hp_thresh = 0.75 #%
-
-
 # In[9]:
 
 

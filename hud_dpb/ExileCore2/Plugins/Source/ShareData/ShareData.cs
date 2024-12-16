@@ -1054,7 +1054,7 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
     }
     public List<ItemOnGroundLabel_c> getItemsOnGroundLabelsVisible(){
         List<ItemOnGroundLabel_c> visible_labels = new List<ItemOnGroundLabel_c>();
-        foreach (var label in GameController.IngameState.IngameUi.ItemsOnGroundLabelsVisible){
+        foreach (var label in GameController.IngameState.IngameUi.ItemsOnGroundLabelElement.LabelsOnGroundVisible){
 
             if (label.ItemOnGround.Path != "Metadata/MiscellaneousObjects/WorldItem") {
                 continue;
@@ -1109,7 +1109,7 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
     }
     public List<VisibleLabel> getVisibleLabels(){
         List<VisibleLabel> visible_labels = new List<VisibleLabel>();
-        foreach (var label in GameController.IngameState.IngameUi.ItemsOnGroundLabelsVisible){
+        foreach (var label in GameController.IngameState.IngameUi.ItemsOnGroundLabelElement.LabelsOnGroundVisible){
             VisibleLabel visible_label = new VisibleLabel();
             visible_label.texts = new List<string>();
             var label_element = label.Label; 
@@ -1234,7 +1234,7 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
     }
     public List<VisibleLabelEntity_c> getVisibleLabelOnGroundEntities(){
         List<VisibleLabelEntity_c> visible_labels = new List<VisibleLabelEntity_c>();
-        foreach (var label in GameController.IngameState.IngameUi.ItemsOnGroundLabelsVisible){
+        foreach (var label in GameController.IngameState.IngameUi.ItemsOnGroundLabelElement.LabelsOnGroundVisible){
             var obj = label.ItemOnGround;
             // ignore invalid or temp objects
             if (obj.IsValid != true){

@@ -211,17 +211,7 @@ class InfernalistZoomancer(Build):
     kite_distance = random.randint(18,22)
     res = True
     reversed_run = random.choice([True, False])
-    holding_attacking_skill = [False]
 
-    def releaseHoldingAttackSkill():
-      if self.attacking_skill and holding_attacking_skill[0] != False:
-        self.attacking_skill.release(wait_till_executed=False)
-        holding_attacking_skill[0] = False
-
-    def pressHoldingAttackSkill():
-      if self.attacking_skill and holding_attacking_skill[0] != True:
-        self.attacking_skill.press(wait_till_executed=False)
-        holding_attacking_skill[0] = True
 
 
     while True:
@@ -229,7 +219,7 @@ class InfernalistZoomancer(Build):
       poe_bot.refreshInstanceData()
       self.auto_flasks.useFlasks()
       if self.poe_bot.game_data.player.life.health.getPercentage() < self.auto_flasks.hp_thresh:
-        releaseHoldingAttackSkill()
+        pass #TODO kite?
 
       entity_to_kill = next((e for e in poe_bot.game_data.entities.attackable_entities if e.id == entity_to_kill_id), None)
       if not entity_to_kill:
@@ -247,50 +237,37 @@ class InfernalistZoomancer(Build):
         break
       current_time = time.time()
       skill_used = self.useBuffs()
-
-      if skill_used != True and self.raise_zombie and self.raise_zombie.canUse() != False:
-        alive_zombies_nearby = list(filter(lambda e: e.life.health.current != 0 and not e.is_hostile and e.distance_to_player < 150 and "Metadata/Monsters/RaisedZombies/RaisedZombieStandard" in e.path , self.poe_bot.game_data.entities.all_entities))
-        if len(alive_zombies_nearby) < self.max_amount_of_zombies:
-          print(f'[Generic summoner] need to raise zombie')
-          corpses_around = poe_bot.game_data.entities.getCorpsesArountPoint(poe_bot.game_data.player.grid_pos.x, poe_bot.game_data.player.grid_pos.y, 25)
-          corpses_around = list(filter(lambda e: e.isInLineOfSight() != False, corpses_around))
-          if len(corpses_around) != 0:
-            if self.raise_zombie.use(updated_entity=corpses_around[0]) != False:
-              return True
-      if self.debuff:
-        if current_time > start_time + 2:
-          if current_time > debuff_use_time + 4:
-            if self.debuff.use(updated_entity=entity_to_kill) is True:
-              debuff_use_time = time.time()
-              skill_used = True
-      # dd_use_delay = random.randint(40,50)/100 + int(not self.desecrate is None) * 0.5
       skill_use_delay = random.randint(20,30)/10
       print(f'skill_use_delay {skill_use_delay}')
 
-      if skill_used != True and self.srs and self.srs != self.attacking_skill and self.srs.last_use_time + skill_use_delay < time.time():
-        releaseHoldingAttackSkill()
-        self.srs.use(updated_entity=entity_to_kill)
-        skill_used = True
-      if skill_used != True and self.flame_totem and self.flame_totem.last_use_time + skill_use_delay < time.time() and self.flame_totem.getMinionsCountInRadius(distance_to_entity) != 0: 
-        releaseHoldingAttackSkill()
-        self.flame_totem.use(updated_entity=entity_to_kill)
-        skill_used = True
-      if skill_used != True and self.summon_skeletons and self.summon_skeletons.last_use_time + skill_use_delay < time.time() and self.summon_skeletons.getMinionsCountInRadius(distance_to_entity) < 0: 
-        releaseHoldingAttackSkill()
-        self.summon_skeletons.use(updated_entity=entity_to_kill)
-        skill_used = True
-      
-
-      if holding_attacking_skill[0] == True:
-        entity_to_kill.hover()
-      else:
-        if skill_used != True and self.attacking_skill and self.poe_bot.game_data.player.life.health.getPercentage() >= self.auto_flasks.hp_thresh:
-          entity_to_kill.hover()
-          pressHoldingAttackSkill()
 
 
 
-      if holding_attacking_skill[0] != True:
+      if skill_used is False and self.flame_wall and self.flame_wall.last_use_time + skill_use_delay < time.time():
+        alive_srs_nearby = list(filter(lambda e: not e.is_hostile and e.life.health.current != 0 and e.distance_to_player < 150 and "Metadata/Monsters/RagingSpirit/RagingSpiritPlayerSummoned" in e.path , self.poe_bot.game_data.entities.all_entities))
+        if len(alive_srs_nearby) < self.max_srs_count:
+          print(f'[Generic summoner] need to raise srs')
+          if self.flame_wall.use(updated_entity=entity_to_kill) == True:
+            skill_used = True
+      if skill_used is False and self.detonate_dead and self.detonate_dead.canUse():
+        corpses_around = poe_bot.game_data.entities.getCorpsesArountPoint(poe_bot.game_data.player.grid_pos.x, poe_bot.game_data.player.grid_pos.y, 40)
+        corpses_around = list(filter(lambda e: e.isInLineOfSight() != False, corpses_around))
+        if len(corpses_around) != 0:
+          corpses_around.sort(key=lambda e: e.calculateValueForAttack())
+          if corpses_around[0].attack_value != 0:
+            if self.detonate_dead.use(updated_entity=corpses_around[0]) != False:
+              skill_used = True
+      if skill_used is False and self.unearth and self.unearth.canUse():
+        corpses_around = poe_bot.game_data.entities.getCorpsesArountPoint(poe_bot.game_data.player.grid_pos.x, poe_bot.game_data.player.grid_pos.y, 20)
+        corpses_around = list(filter(lambda e: e.isInLineOfSight() != False, corpses_around))
+        if len(corpses_around) != 0:
+          corpses_around.sort(key=lambda e: e.calculateValueForAttack())
+          if corpses_around[0].attack_value != 0:
+            if self.unearth.use(updated_entity=corpses_around[0]) != False:
+              skill_used = True
+
+
+      if skill_used != True:
         print('kiting')
         point = self.poe_bot.game_data.terrain.pointToRunAround(entity_to_kill.grid_position.x, entity_to_kill.grid_position.y, kite_distance+random.randint(-1,1), check_if_passable=True, reversed=reversed_run)
         mover.move(grid_pos_x = point[0], grid_pos_y = point[1])
@@ -301,7 +278,6 @@ class InfernalistZoomancer(Build):
       if current_time  > start_time + max_kill_time_sec:
         print('exceed time')
         break
-    releaseHoldingAttackSkill()
     return res
 
 
@@ -358,6 +334,18 @@ print(f'running aqueduct using: REMOTE_IP: {REMOTE_IP} unique_id: {UNIQUE_ID} ma
 # In[6]:
 
 
+ARTS_TO_PICK = [
+  "Art/2DItems/Currency/CurrencyModValues.dds",
+  "Art/2DItems/Currency/CurrencyGemQuality.dds",
+  "Art/2DItems/Currency/CurrencyRerollRare.dds",
+  "Art/2DItems/Currency/CurrencyAddModToRare.dds",
+  "Art/2DItems/Currency/CurrencyUpgradeToUniqueShard.dds"
+]
+
+
+# In[7]:
+
+
 poe_bot = PoeBot(unique_id = UNIQUE_ID, remote_ip = REMOTE_IP, password=password)
 
 def clickResurrect_POE2(town = False):
@@ -371,30 +359,152 @@ def clickResurrect_POE2(town = False):
   time.sleep(random.randint(30,60)/100)
   return True
 
+
 poe_bot.ui.resurrect_panel.clickResurrect = clickResurrect_POE2
 
 poe_bot.refreshAll()
+poe_bot.game_data.terrain.getCurrentlyPassableArea()
 
-
-# In[7]:
-
-
-# poe_bot.mover.setMoveType('wasd')
 
 
 # In[8]:
 
 
-poe_bot.combat_module.build = InfernalistZoomancer(poe_bot=poe_bot)
+from utils.loot_filter import PickableItemLabel
+def isItemHasPickableKey(item_label:PickableItemLabel):
+  if item_label.icon_render in ARTS_TO_PICK:
+    return True
+  return False
+poe_bot.loot_picker.loot_filter.special_rules = [isItemHasPickableKey]
 
 
 # In[9]:
+
+
+# poe_bot.mover.setMoveType('wasd')
+
+
+# In[10]:
+
+
+poe_bot.combat_module.build = InfernalistZoomancer(poe_bot=poe_bot)
+poe_bot.mover.default_continue_function = poe_bot.combat_module.build.usualRoutine
+
+
+# In[11]:
+
+
+beetle_entity = next( (e for e in poe_bot.game_data.entities.attackable_entities_rares if e.render_name == "The Ninth Treasure of Keth"), None)
+if beetle_entity:
+  poe_bot.combat_module.killTillCorpseOrDisappeared(beetle_entity)
+else:
+  print(f'no entity found')
+
+
+# In[12]:
+
+
+start_time = time.time()
+
+def destroyCorpse(corpse_entity:Entity):
+  while True:
+    poe_bot.refreshInstanceData()
+    updated_corpse_entity = next( (e for e in poe_bot.game_data.entities.all_entities if e.id == corpse_entity.id), None)
+    if updated_corpse_entity:
+      if updated_corpse_entity.distance_to_player > 25:
+        poe_bot.mover.goToEntitysPoint(updated_corpse_entity)
+      else:
+        if poe_bot.combat_module.build.detonate_dead and poe_bot.combat_module.build.detonate_dead.canUse():
+          if poe_bot.combat_module.build.detonate_dead.use(updated_entity=updated_corpse_entity) != False:
+            continue
+        if poe_bot.combat_module.build.unearth and poe_bot.combat_module.build.unearth.canUse():
+          if poe_bot.combat_module.build.unearth.use(updated_entity=updated_corpse_entity) != False:
+            continue
+    else:
+      break
+beetle_corpse = next( (e for e in poe_bot.game_data.entities.all_entities if e.render_name == "The Ninth Treasure of Keth"), None)
+if beetle_corpse:
+  destroyCorpse(beetle_corpse)
+
+
+# In[ ]:
+
+
+entity_to_run_around = None
+if beetle_corpse:
+  print(f'running around corpse {beetle_corpse}')
+  entity_to_run_around = beetle_corpse
+elif beetle_entity:
+  print(f'running around entity {beetle_entity}')
+
+  entity_to_run_around = beetle_entity
+
+if entity_to_run_around:
+  start_time = time.time()
+  run_duration_seconds = 5
+  end_at = start_time + run_duration_seconds
+  kite_distance = 10
+  reversed_run = random.choice([True, False])
+  while time.time() < end_at:
+    poe_bot.refreshInstanceData()
+    poe_bot.combat_module.build.auto_flasks.useFlasks()  
+    print('kiting')
+    point = poe_bot.game_data.terrain.pointToRunAround(entity_to_run_around.grid_position.x, entity_to_run_around.grid_position.y, kite_distance+random.randint(-1,1), check_if_passable=True, reversed=reversed_run)
+    poe_bot.mover.move(grid_pos_x = point[0], grid_pos_y = point[1])
+else:
+  poe_bot.refreshInstanceData()
+
+
+# In[14]:
+
+
+poe_bot.loot_picker.collectLootWhilePresented()
+
+
+# In[15]:
+
+
+def respawnAtCheckPoint():
+  poe_bot.bot_controls.keyboard.tap('DIK_ESCAPE')
+  time.sleep(random.randint(40,80)/100)
+  pos_x, pos_y = random.randint(450,550), random.randint(289,290)
+  pos_x, pos_y = poe_bot.convertPosXY(pos_x, pos_y)
+  poe_bot.bot_controls.mouse.setPosSmooth(pos_x, pos_y)
+  time.sleep(random.randint(40,80)/100)
+  poe_bot.bot_controls.mouse.click()
+  time.sleep(random.randint(30,60)/100)
+
+  pos_x, pos_y = random.randint(580,640), random.randint(408,409)
+  pos_x, pos_y = poe_bot.convertPosXY(pos_x, pos_y)
+  time.sleep(random.randint(20,80)/100)
+  poe_bot.bot_controls.mouse.setPosSmooth(pos_x, pos_y)
+  time.sleep(random.randint(20,80)/100)
+  poe_bot.bot_controls.mouse.click()
+  time.sleep(random.randint(30,60)/100)
+  return True
+poe_bot.bot_controls.releaseAll()
+respawnAtCheckPoint()
+while True:
+  poe_bot.refreshInstanceData()
+  beetle_entity = next( (e for e in poe_bot.game_data.entities.all_entities if e.render_name == "The Ninth Treasure of Keth"), None)
+  if beetle_entity:
+    break
+
+
+# In[16]:
 
 
 raise 404
 
 
 # In[ ]:
+
+
+poe_bot.refreshInstanceData()
+poe_bot.loot_picker.collectLoot()
+
+
+# In[10]:
 
 
 from utils.pathing import TSP
