@@ -21,7 +21,8 @@
 
 # poe 2 hud 
 !hud_dpb/ExileCore2/
-!hud_dpb/ExileCore2/Plugins
+!hud_dpb/ExileCore2/Plugins/
+!hud_dpb/ExileCore2/Plugins/Source/
 !hud_dpb/ExileCore2/Plugins/Source/ShareData/
 !hud_dpb/ExileCore2/Plugins/Source/ShareData/**
 
