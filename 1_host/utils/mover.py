@@ -24,10 +24,22 @@ class Mover:
   distance_to_entity: float
   opened_doors = []
 
-  def __init__(self, poe_bot:PoeBot, debug = False) -> None:
+  def __init__(self, poe_bot:PoeBot, debug = False, move_type = "mouse") -> None:
     self.poe_bot = poe_bot
     self.debug = debug
     self.default_continue_function = alwaysFalseFunction
+    self.extra_points_count = 4
+    self.setMoveType(move_type=move_type)
+  def setMoveType(self, move_type):
+    if move_type == "mouse":
+      self.move = self.moveUsingMouse
+      self.extra_points_count = 4
+    elif move_type == "wasd":
+      self.move = self.moveWASD
+      self.extra_points_count = 0
+    else:
+      raise Exception(f'unknown move type {move_type}, supposed to be either "mouse" or "wasd"')
+    self.move_type = move_type
   def enterTransition(self, transition:Entity, necropolis_ui = False, screen_pos_offset = [0,0], entered_distance_sign = 100, check_for_loading = False):
     '''
     main idea is that the the current transition is gonna become further than the other
@@ -353,7 +365,7 @@ class Mover:
             if self.distance_to_target < 20:
               print(f'breaking cos distance_to_target < 20 {self.distance_to_target} ')
               break
-            current_path = cropPath(path, step_size,step_size, current_pos_x=int(poe_bot.game_data.player.grid_pos.x), current_pos_y=int(poe_bot.game_data.player.grid_pos.y), max_path_length=100)
+            current_path = cropPath(path, step_size,step_size, current_pos_x=int(poe_bot.game_data.player.grid_pos.x), current_pos_y=int(poe_bot.game_data.player.grid_pos.y), max_path_length=100, extra_points_count=self.extra_points_count)
             if len(current_path) == 0:
               print('len(current_path) == 0 in release_mouse_cycles, generating new path')
               if self.distance_to_target < 30:
@@ -377,7 +389,7 @@ class Mover:
             time.sleep(random.randint(7,14)/100)
           poe_bot.last_action_time = 0 # reset action delay
           poe_bot.refreshInstanceData()
-          current_path = cropPath(path, step_size,step_size, current_pos_x=int(poe_bot.game_data.player.grid_pos.x), current_pos_y=int(poe_bot.game_data.player.grid_pos.y), max_path_length=100)
+          current_path = cropPath(path, step_size,step_size, current_pos_x=int(poe_bot.game_data.player.grid_pos.x), current_pos_y=int(poe_bot.game_data.player.grid_pos.y), max_path_length=100, extra_points_count=self.extra_points_count)
           self.distance_to_target = dist((grid_pos_to_go_y, grid_pos_to_go_x), [poe_bot.game_data.player.grid_pos.y ,poe_bot.game_data.player.grid_pos.x])
           if len(current_path) == 0 and self.distance_to_target > 0:
             print('len(current_path) == 0 in release_mouse_on_end, generating new path')
@@ -457,7 +469,7 @@ class Mover:
           print(f'[Mover] stuck, moving to {point}')
           self.move(grid_pos_x = point[0], grid_pos_y = point[1])
           continue
-      current_path = cropPath(path, int(step_size*1.7),step_size, current_pos_x=int(poe_bot.game_data.player.grid_pos.x), current_pos_y=int(poe_bot.game_data.player.grid_pos.y), max_path_length=int(step_size*1.5))
+      current_path = cropPath(path, int(step_size*1.7),step_size, current_pos_x=int(poe_bot.game_data.player.grid_pos.x), current_pos_y=int(poe_bot.game_data.player.grid_pos.y), max_path_length=int(step_size*1.5), extra_points_count=self.extra_points_count)
       # print(f'len(current_path) {len(current_path)}')
       if len(current_path) == 0:
         print('[Mover] len(current_path) == 0, generating new path')
@@ -475,8 +487,12 @@ class Mover:
       if custom_break_function_result is not False:
         return custom_break_function_result
 
-      if bot_controls.mouse_pressed['left'] is True and custom_continue_function(self) is True:
+      if first_step == 2 and custom_continue_function(self) is True:
         continue
+
+
+      # if bot_controls.mouse_pressed['left'] is True and custom_continue_function(self) is True:
+      #   continue
 
       pos_to_click = poe_bot.getPositionOfThePointOnTheScreen(current_path[-1][0], current_path[-1][1])
       pos_x,pos_y = poe_bot.convertPosXY(pos_to_click[0], pos_to_click[1])
@@ -492,7 +508,8 @@ class Mover:
       else:
         first_step = 2
 
-      self.move(screen_pos_x=int(pos_to_click[0]), screen_pos_y=int(pos_to_click[1]))
+      self.move(grid_pos_x=current_path[-1][1], grid_pos_y=current_path[-1][0])
+      # self.move(screen_pos_x=int(pos_to_click[0]), screen_pos_y=int(pos_to_click[1]))
       # poe_bot.move(int(pos_to_click[0]), int(pos_to_click[1]))
       time.sleep(0.01)
 
@@ -599,7 +616,7 @@ class Mover:
       )
       self.reset()
       return res
-  def move(self, grid_pos_x = None, grid_pos_y = None, screen_pos_x = None, screen_pos_y = None):
+  def moveUsingMouse(self, grid_pos_x = None, grid_pos_y = None, screen_pos_x = None, screen_pos_y = None):
     poe_bot = self.poe_bot
     bot_controls = poe_bot.bot_controls
     if grid_pos_x != None and grid_pos_y != None:
@@ -614,20 +631,38 @@ class Mover:
       bot_controls.mouse.setPosSmooth(pos_x,pos_y, wait_till_executed=False)
     return (pos_x,pos_y)
   def moveWASD(self, grid_pos_x = None, grid_pos_y = None, screen_pos_x = None, screen_pos_y = None):
+    print(f'[Mover.moveWASD] {grid_pos_x, grid_pos_y}, {screen_pos_x, screen_pos_y}')
     if grid_pos_x != None and grid_pos_y != None:
+      print(f'grid pos pp {self.poe_bot.game_data.player.grid_pos.toList()}')
+
       angle = angleOfLine(
         self.poe_bot.game_data.player.grid_pos.toList(),
-        [grid_pos_x, grid_pos_y]
+        [grid_pos_x, grid_pos_y],
       )
     elif screen_pos_x != None and screen_pos_y != None:
+      print(f'screen pos cp {self.poe_bot.game_window.center_point}')
       angle = angleOfLine(
         self.poe_bot.game_window.center_point,
-        [grid_pos_x, grid_pos_y]
+        [screen_pos_x, screen_pos_y],
       ) - 45
       if angle < 0:
         angle += 360
 
-    buttons_to_press = directions_and_keys[angle]
+    # we have an angle to move
+
+    print(f'[Mover.moveWASD] exact angle to move {angle}')
+    angle_mult = angle // 45
+    angle_leftover = angle % 45
+
+    if angle_leftover > 22.5:
+      angle_mult += 1
+
+    nearest_angle = int(angle_mult * 45)
+    if nearest_angle == 360:
+      nearest_angle = 0
+    print(f'[Mover.moveWASD] gonna move by angle {nearest_angle}')
+
+    buttons_to_press = DIRECTIONS_AND_KEYS[nearest_angle]
 
     pressed_movement_keys_atm = list(filter(lambda k: k in MOVEMENT_KEYS, self.poe_bot.bot_controls.keyboard.pressed))
     keys_to_release = list(filter(lambda k: k not in buttons_to_press, pressed_movement_keys_atm))
@@ -642,7 +677,18 @@ class Mover:
 
     for action in queue:
       action()
-    return (pos_x,pos_y) # ????????
+    return (0,0) #TODO ????????
+  def stopMoving(self):
+    if self.move_type == "mouse":
+      self.poe_bot.bot_controls.mouse.release()
+    elif self.move_type == "wasd":
+      pressed_movement_keys = list(filter(lambda k: k in MOVEMENT_KEYS, self.poe_bot.bot_controls.keyboard.pressed))
+      queue = []
+      list(map(lambda k: queue.append(lambda: self.poe_bot.bot_controls.keyboard_releaseKey(k, wait_till_executed=False)), pressed_movement_keys))
+      random.shuffle(queue)
+      for f in queue:
+        f()      
+
   def reset(self):
     self.entity_to_go = None
     self.distance_to_target = 0
@@ -654,7 +700,7 @@ MOVEMENT_KEYS = [
   "DIK_A", "DIK_W", "DIK_D", "DIK_S"
 ]
 
-directions_and_keys = {
+DIRECTIONS_AND_KEYS = {
   0: ["DIK_A", "DIK_W"],
   45: ["DIK_W"],
   90: ["DIK_W", "DIK_D"],
@@ -664,3 +710,5 @@ directions_and_keys = {
   270: ["DIK_S", "DIK_A"],
   315: ["DIK_A"],
 }
+
+ALL_DIRECTIONS_ANGLES = list(DIRECTIONS_AND_KEYS.keys()) + [360]

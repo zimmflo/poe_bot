@@ -403,7 +403,6 @@ class WitchSrsLeveling(Build):
       if max_amount_of_zombies != None:
         self.max_amount_of_zombies =  max_amount_of_zombies['NumberOfZombiesAllowed']
       print(f'[Generic summoner] raise zombie max zombies {self.max_amount_of_zombies}')
-
     srs = next( (s for s in self.poe_bot.game_data.skills.internal_names if s == SKILLS_INTERNAL_NAMES.SUMMON_RAGING_SPIRIT), None)
     if srs:
       skill_index = self.poe_bot.game_data.skills.internal_names.index(srs)
@@ -456,12 +455,6 @@ class WitchSrsLeveling(Build):
 
 
     self.ballista_skill = None # totem
-
-
-
-
-
-
 
     self.blood_rage = None
     self.movement_skill = None
@@ -694,6 +687,23 @@ class WitchSrsLeveling(Build):
     return res
 
 
+# In[ ]:
+
+
+class LocusMines(Build):
+  def __init__(self, poe_bot: PoeBot) -> None:
+    
+
+    super().__init__(poe_bot)
+
+class TricksterMinesLeveling(Build):
+  def __init__(self, poe_bot: PoeBot) -> None:
+
+
+    super().__init__(poe_bot)
+
+
+
 # In[7]:
 
 
@@ -711,7 +721,7 @@ class LevelingStrategy:
   # build
   # loot_fitler_special_settings = special_loot_filter.isItemPickable
   def __init__(self, poe_bot:PoeBot) -> None:
-    pass
+    self.poe_bot = poe_bot
 class RangerBowVgLevelingStrategy(LevelingStrategy):
   def __init__(self, poe_bot: PoeBot) -> None:
     super().__init__(poe_bot)
@@ -741,8 +751,7 @@ class RangerBowVgLevelingStrategy(LevelingStrategy):
       self.loot_fitler_special_settings = special_loot_filter.isItemPickable
 class SrsWitchLevelingStrategy(LevelingStrategy):
   def __init__(self, poe_bot) -> None:
-    super().__init__(poe_bot)
-    a3_dialla_quest_reward_choice_item_art = A3_DIALLA_QUEST_REWARDS_DICT["str_amulet"]
+    self.a3_dialla_quest_reward_choice_item_art = A3_DIALLA_QUEST_REWARDS_DICT["str_amulet"]
     self.build = WitchSrsLeveling(poe_bot=poe_bot)
     if poe_bot.game_data.quest_states.getOrUpdate().get("Visited3Town", False) != False:
       collect_rgb = False
@@ -752,11 +761,14 @@ class SrsWitchLevelingStrategy(LevelingStrategy):
       links_to_collect = ["BBR"]
     special_loot_filter = CustomLootFilter(collect_rgb=collect_rgb, collect_links=links_to_collect)
     self.loot_fitler_special_settings = special_loot_filter.isItemPickable
+    super().__init__(poe_bot)
 
 leveling_strategies_dict = {
   "ranger_vg": RangerBowVgLevelingStrategy,
   "ranger_roa": RangerBowVgLevelingStrategy,
   "witch_minions": SrsWitchLevelingStrategy,
+  # "shadow_mines"
+  # "shadow_hitter"
 
 }
 
@@ -3356,14 +3368,14 @@ class Loc1_4_3_3(A4QuestArea): # crystal veins
 class Loc1_4_4_1(QuestArea):
   possible_to_enter_transitions = ["Kaom's Stronghold"]
   explore_furthest = True
-class Loc1_4_4_3(A4QuestArea):
+class Loc1_4_4_3(A4QuestArea): #TODO supposed to relog on killing kaom
   waypoint_string = '1_4_4_3'
   bossroom_transitions = ["Caldera of The King"]
   bossroom_entities_render_names = ['King Kaom']
   explore_furthest = True
 class Loc1_4_6_1(QuestArea):
   possible_to_enter_transitions = ["The Belly of the Beast Level 2"]
-class Loc1_4_6_2(QuestArea):
+class Loc1_4_6_2(QuestArea): #TODO after boss fight supposed to Piety->blocker->door+open->crafting recipe->transition
   bossroom_transitions = ["The Bowels of the Beast"]
   bossroom_entities_render_names = ["Piety, the Abomination"]
   location_name = "The Belly of the Beast Level 2"
@@ -3397,7 +3409,7 @@ class Loc1_4_6_2(QuestArea):
     while inside_wardens_chambers is False:
       inside_wardens_chambers = lookForWardensChambers()
       bossroom_encounter.clearBossroom()
-class Loc1_4_6_3(A4QuestArea):
+class Loc1_4_6_3(A4QuestArea): # TODO test logic
   bossroom_transitions = ["Maligaro's Arena", "Shavronne's Arena", "Doedre's Arena"]
   bossroom_entities_render_names = ["Maligaro, The Inquisitor", "Shavronne of Umbra", "Doedre Darktongue"]
   def updateGoals(self, force_update=False):
@@ -3414,7 +3426,6 @@ class Loc1_4_6_3(A4QuestArea):
       self.bossroom_entities_render_names.append("Doedre Darktongue")
 
     return super().updateGoals(force_update)
-  
   def extraQuestInLoc(self):
     if self.have_or_used_doedre_item == True and self.have_or_used_maligaro_item == True and self.have_or_used_shavronne_item == True:
       piety_npc = next( (e for e in poe_bot.game_data.entities.npcs if e.path == "Metadata/NPC/Act4/PietyHarvest"), None)
@@ -3753,7 +3764,7 @@ class Loc2_6_4(QuestArea):
       print('gonna go fortress')
     else:
       print(f'kill queen and goto fortress')
-class Loc2_6_5(QuestArea): # complicated boss
+class Loc2_6_5(QuestArea): #TODO complicated boss with totems
   bossroom_entities_render_names =["Tukohama, Karui God of War"]
   def clearBossroom(self, bossroom_encounter: Bossroom, just_resurrected=False):
     input('kill boss, has totems on stage, relog')
@@ -3816,7 +3827,7 @@ class Loc2_6_7_2(QuestArea):
     while inside_wardens_chambers is False:
       inside_wardens_chambers = lookForWardensChambers()
       bossroom_encounter.clearBossroom()
-class Loc2_6_8(QuestArea): # complicated boss
+class Loc2_6_8(QuestArea): #TODO complicated boss with multi layerd transitions
   ready = True
   waypoint_string = None
   def __init__(self) -> None:
@@ -3986,9 +3997,20 @@ class A7QuestArea(QuestArea):
     self.updateMapStatus()
     self.updateFireFlyQuest()
     self.updateGruthkulStatus()
+    self.updateCryptSilkQuestStatus()
   def updateMapStatus(self):
     quest_flags = poe_bot.game_data.quest_states.getOrUpdate()
     self.have_map = quest_flags.get("A7Q2HaveItem", False)
+  def updateCryptSilkQuestStatus(self):
+    quest_flags = poe_bot.game_data.quest_states.getOrUpdate()
+    # kill malagrio, take poison
+    self.have_black_venom = quest_flags.get("A7Q3HaveItem", False)
+    # deliver poison
+    self.delivered_black_venom = quest_flags.get("A7Q3DeliveredItem", False)
+    # take key
+    self.chamber2_key_taken = quest_flags.get("A7Q1HaveKey", False)
+    # use key    
+    self.chamber2_key_used = quest_flags.get("A7Q1UsedKey", False)
   def updateFireFlyQuest(self):
     quest_flags = poe_bot.game_data.quest_states.getOrUpdate()
     firefly_keys = [
@@ -4025,7 +4047,7 @@ class Loc2_7_2(A7QuestArea): # crossroads
     self.updateGoals()
 class Loc2_7_3(QuestArea): # The Fellshrine Ruins
   possible_to_enter_transitions = ['The Crypt']
-class Loc2_7_4(A7QuestArea): # The crypt - #TODO go to second level only after the lab completion
+class Loc2_7_4(A7QuestArea): # The crypt
   lab_trial_flag = 'CruelLabyrinthCompletedSins'
   waypoint_string = '2_7_4'
   have_map = False
@@ -4099,7 +4121,6 @@ class Loc2_7_4(A7QuestArea): # The crypt - #TODO go to second level only after t
 
     return super().extraQuestInLoc()
 class Loc2_7_5_1(QuestArea): # Chamber of sins lvl1 #TODO extra quest
-  ready = False
   waypoint_string = '2_7_5_1'
   def __init__(self) -> None:
     super().__init__()
@@ -4108,6 +4129,8 @@ class Loc2_7_5_1(QuestArea): # Chamber of sins lvl1 #TODO extra quest
     else:
       # check if 
       pass
+class Loc2_7_5_map(A7QuestArea):
+  pass
 class Loc2_7_5_2(QuestArea): # Chamber of sins lvl2 #TODO lab trial doors are unpassable
   lab_trial_flag = "CruelLabyrinthCompletedCrypt"
   def doLab(self, lab_enterance: Entity, lab_area):
@@ -4139,7 +4162,6 @@ class Loc2_7_5_2(QuestArea): # Chamber of sins lvl2 #TODO lab trial doors are un
       if door:
         poe_bot.mover.goToEntitysPoint(door)
         door.clickTillNotTargetable()
-
         transition = next( (e for e in poe_bot.game_data.entities.area_transitions if e.render_name == "The Den"), None)
         if transition:
           poe_bot.mover.enterTransition(transition)
@@ -4173,8 +4195,9 @@ class Loc2_7_8(A7QuestArea): # "The Northern Forest"
     else:
       print(f'[Loc2_7_8] collected fireflies status {self.fireflies_collected} and gruthkul_killed status {self.gruthkul_killed}, need to visit dread thicket')
       self.possible_to_enter_transitions = ["The Dread Thicket"]
-class Loc2_7_9(QuestArea): # "The Dread Thicket"
+class Loc2_7_9(QuestArea):
   ready = True
+  location_name = "The Dread Thicket"
   firefly_container_key = "Metadata/Chests/QuestChests/Fireflies/FireflyChest"
   need_to_collect_fireflies = False
   bossroom_entities_render_names = ["Gruthkul, Mother of Despair"]
@@ -4241,15 +4264,20 @@ class Loc2_7_10(QuestArea): # "The Causeway" #TODO sometimes doesnt collect loot
       poe_bot.loot_picker.collectLootWhilePresented()
       poe_bot.refreshInstanceData()
       transition = next( (e for e in poe_bot.game_data.entities.area_transitions if e.render_name == "The Vaal City"))
-      poe_bot.mover.goToPoint(
-        (transition.grid_position.x, transition.grid_position.y),
-        release_mouse_on_end=False,
-        custom_continue_function=poe_bot.combat_module.build.usualRoutine
-      )
+      while True:
+        res = poe_bot.mover.goToPoint(
+          (transition.grid_position.x, transition.grid_position.y),
+          release_mouse_on_end=False,
+          custom_continue_function=poe_bot.combat_module.build.usualRoutine,
+          custom_break_function=poe_bot.loot_picker.collectLoot()
+        )
+        if res == None:
+          break
       poe_bot.mover.enterTransition(transition, necropolis_ui=True)
     return False
 class Loc2_7_11(QuestArea): # "The Vaal City" #TODO not sure if it completes the quest properly
   waypoint_string = '2_7_11'
+  possible_to_enter_transitions = ["The Temple of Decay Level 1"] 
   anchor_keys = ["The Temple of Decay Level 1", "Yeena"]
   def extraQuestInLoc(self):
     if self.can_open_waypoint is False:
@@ -4268,7 +4296,7 @@ class Loc2_7_11(QuestArea): # "The Vaal City" #TODO not sure if it completes the
           poe_bot.ui.closeAll()
           print(f'clicked on yeena yeena')
           yeena_npc = next( (e for e in poe_bot.game_data.entities.all_entities if e.render_name == "Yeena"), None)
-          if yeena_npc and yeena_npc.is_targetable != True:
+          if yeena_npc and yeena_npc.is_targetable == False:
             print(f'yeena became untargetable')
             break
         next_transition = next( (e for e in poe_bot.game_data.entities.area_transitions if e.render_name == "The Temple of Decay Level 1"), None)
@@ -4277,10 +4305,6 @@ class Loc2_7_11(QuestArea): # "The Vaal City" #TODO not sure if it completes the
           poe_bot.mover.goToEntitysPoint(next_transition)
           poe_bot.mover.enterTransition(next_transition)
     return False
-  def __init__(self) -> None:
-    super().__init__()
-    if self.can_open_waypoint != True:
-      self.possible_to_enter_transitions.append("The Temple of Decay Level 1")
 class Loc2_7_12_1(QuestArea):
   multi_layerd_transitions_render_names = ['Stairs']
   possible_to_enter_transitions = ["The Temple of Decay Level 2"]
@@ -4530,14 +4554,13 @@ class A9QuestArea(QuestArea):
     else:
       self.dealt_with_basilisk = False      
     return self.dealt_with_basilisk
-class Loc2_9_1(QuestArea): 
+class Loc2_9_1(QuestArea):
   waypoint_string = None
   possible_to_enter_transitions = ["Highgate"]
-class Loc2_9_2(QuestArea): 
+class Loc2_9_2(QuestArea):
   multi_layerd_transitions_render_names = ['Supply Hoist']
   possible_to_enter_transitions = ["The Vastiri Desert"]
-class Loc2_9_3(QuestArea): 
-  ready = True
+class Loc2_9_3(QuestArea): # The Vastiri Desert, #TODO storm blade quest
   waypoint_string = "2_9_3"
   def extraQuestInLoc(self):
     # "Metadata/QuestObjects/Act9/MummyEventChest"
@@ -4550,7 +4573,8 @@ class Loc2_9_3(QuestArea):
     super().__init__()
 class Loc2_9_5(A9QuestArea): # if basilisk killed, else goto "The Tunnel"
   waypoint_string = "2_9_5"
-  def getTransitions(self):
+  def updateGoals(self, force_update=False):
+    super().updateGoals(force_update)
     if self.can_open_waypoint is False:
       if self.dealt_with_basilisk != False:
         self.possible_to_enter_transitions = ["The Tunnel"]
@@ -4558,23 +4582,18 @@ class Loc2_9_5(A9QuestArea): # if basilisk killed, else goto "The Tunnel"
         self.possible_to_enter_transitions = ["The Boiling Lake"]
   def onWaypointOpenedFunction(self):
     self.updateQuestStatus(force_update=True)
-    self.getTransitions()
+    self.updateGoals()
     return super().onWaypointOpenedFunction()
-  def __init__(self) -> None:
-    self.updateQuestStatus()
-    self.getTransitions()
-    super().__init__()
 class Loc2_9_6(A9QuestArea): 
   unique_entities_to_kill_render_names = ["The Basilisk"]
   def funcToCallAfterKillingUniqueEntity(self):
     self.possible_to_enter_transitions.append('The Foothills')
     return super().funcToCallAfterKillingUniqueEntity()
-  def __init__(self) -> None:
-    self.updateQuestStatus()
+  def updateGoals(self, force_update=False):
+    super().updateGoals(force_update)
     if self.dealt_with_basilisk == True:
       self.possible_to_enter_transitions.append('The Foothills')
-    super().__init__()
-class Loc2_9_7(QuestArea):
+class Loc2_9_7(QuestArea): # "The Tunnel" #TODO lab
   ready = False
   lab_trial_flag = "MercilessLabyrinthCompletedTunnel"
   def getTransitions(self):
@@ -4585,10 +4604,11 @@ class Loc2_9_7(QuestArea):
   def __init__(self) -> None:
     self.getTransitions()
     super().__init__()
-class Loc2_9_8(A9QuestArea): 
+class Loc2_9_8(A9QuestArea): # "The Quarry", #TODO refinery quest logic, panteon boss logic, deliver items logic
   ready = True
   # waypoint_string = None
-  def getTransitions(self):
+  def updateGoals(self, force_update=False):
+    super().updateGoals(force_update)
     quest_flags = poe_bot.game_data.quest_states.getOrUpdate()
     have_golem_item = quest_flags.get("A9Q1HaveItem1", False)
     if self.can_open_waypoint is False:
@@ -4596,10 +4616,9 @@ class Loc2_9_8(A9QuestArea):
       if have_golem_item is False:
         self.possible_to_enter_transitions.append("The Refinery")
       if killed_panteon_boss is False:
-        self.bossroom_transitions.append('')
-  def __init__(self) -> None:
-    self.getTransitions()
-    super().__init__()
+        pass
+        # self.bossroom_transitions.append('')
+    return
 class Loc2_9_10_1(QuestArea): 
   ready = True
   possible_to_enter_transitions = ["The Rotting Core"]

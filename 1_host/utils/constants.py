@@ -180,8 +180,25 @@ SKILL_KEYS = [
   'CTRL+DIK_T',
 ]
 
+SKILL_KEYS_WASD = [
+  'left',
+  'middle',
+  'right',
+  'DIK_Q',
+  'DIK_E',
+  'DIK_R',
+  'DIK_T',
+  'DIK_F',
+  'CTRL+DIK_Q',
+  'CTRL+DIK_E',
+  'CTRL+DIK_R',
+  'CTRL+DIK_T',
+  'CTRL+DIK_F',
+]
+
 FLASK_NAME_TO_BUFF = {
   # https://github.com/TehCheat/PoEHelper/blob/master/Plugins/Compiled/BasicFlaskRoutine/config/languages/Russian/FlaskBuffDetails.json
+  # poe 1
   "Small Life Flask": "flask_effect_life",
   "Medium Life Flask": "flask_effect_life",
   "Large Life Flask": "flask_effect_life",
@@ -227,6 +244,27 @@ FLASK_NAME_TO_BUFF = {
   "Sulphur Flask": "flask_utility_consecrate",
   "Silver Flask": "flask_utility_haste",
   "Bismuth Flask": "flask_utility_prismatic",
+
+  # poe 2
+  "Lesser Life Flask" : "flask_effect_life",
+  "Medium Life Flask" : "flask_effect_life",
+  "Greater Life Flask" : "flask_effect_life",
+  "Grand Life Flask" : "flask_effect_life",
+  "Giant Life Flask" : "flask_effect_life",
+  "Colossal Life Flask" : "flask_effect_life",
+  "Gargantuan Life Flask" : "flask_effect_life",
+  "Transcendent Life Flask" : "flask_effect_life",
+  "Ultimate Life Flask" : "flask_effect_life",
+
+  "Lesser Mana Flask" : "flask_effect_mana",
+  "Medium Mana Flask" : "flask_effect_mana",
+  "Greater Mana Flask" : "flask_effect_mana",
+  "Grand Mana Flask" : "flask_effect_mana",
+  "Giant Mana Flask" : "flask_effect_mana",
+  "Colossal Mana Flask" : "flask_effect_mana",
+  "Gargantuan Mana Flask" : "flask_effect_mana",
+  "Transcendent Mana Flask" : "flask_effect_mana",
+  "Ultimate Mana Flask" : "flask_effect_mana",
 }
 
 SHITTY_UNIQUES_ARTS = set([

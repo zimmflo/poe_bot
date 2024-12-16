@@ -419,13 +419,20 @@ def cropPath(path, area_x = 25, area_y = 25, max_path_length = 100, current_pos_
   return cropped_path
 def angleOfLine(p1,p2):
   '''
+  p1: (x,y)
+  
+  p2: (x,y)
+
   315  0   45
+  
   270  p1  90
+  
   225  180 135
   '''
 
 
-  angle = degrees(atan2(-(p2[1]-p1[1]), p2[0]-p1[0]))
+  angle = degrees(atan2(-(p2[0]-p1[0]), p2[1]-p1[1]))
+  # angle = degrees(atan2(-(p2[1]-p1[1]), p2[0]-p1[0]))
   angle -= 180 
   if angle < 0:
     angle += 360.0

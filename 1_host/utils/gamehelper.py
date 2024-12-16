@@ -67,6 +67,7 @@ class PoeBot:
     self.password = password
     self.can_do_action_every = 1/max_actions_per_second
     self.debug = debug
+    self.check_resolution = True
 
     self.bot_controls = VMHostPuppeteer(remote_ip)
 
@@ -539,7 +540,7 @@ class Entity:
   # animated_property_metadata:str
   render_name:str
   distance_to_player: float
-  attack_value = 0
+  attack_value:int = None
   
   def __init__(self, poe_bot:PoeBot, raw_json:dict) -> None:
     self.raw = raw_json
@@ -659,6 +660,7 @@ class Entity:
     return True
 
   def calculateValueForAttack(self,search_radius = 17):
+    self.attack_value = 0
     lower_x = self.grid_position.x - search_radius
     upper_x = self.grid_position.x + search_radius
     lower_y = self.grid_position.y - search_radius
@@ -672,6 +674,7 @@ class Entity:
     self.attack_value += len(entities_around)
     if "Metadata/Monsters/Totems/TotemAlliesCannotDie" in self.path:
       self.attack_value += 10
+    return self.attack_value
   def isInRoi(self):
     if self.location_on_screen.x > self.poe_bot.game_window.borders[0]:
       if self.location_on_screen.x < self.poe_bot.game_window.borders[1]:
@@ -983,7 +986,7 @@ class GameWindow:
     self.pos_y2 = refreshed_data['w'][3]
     self.width = self.pos_x2 - self.pos_x
     self.height = self.pos_y2 - self.pos_y
-    if self.width != 1024 or self.height != 768:
+    if self.poe_bot.check_resolution and (self.width != 1024 or self.height != 768):
       self.poe_bot.raiseLongSleepException(f"game window width or height aren't 1024x768")
     # X, Y
     self.center_point = [int(self.width/2), int(self.height/2)]

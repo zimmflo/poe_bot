@@ -66,7 +66,7 @@ class Pather:
       self.terrain_for_a_star[self.terrain_for_a_star == 54] = 2 + random.randint(-random_val,random_val)/10 # 5
       self.terrain_for_a_star[self.terrain_for_a_star == 55] = 2 + random.randint(-random_val,random_val)/10 # 6
 
-  def cropPath(self,path, area_x = 25, area_y = 25, max_path_length = 100, *args, **kwargs):
+  def cropPath(self,path, area_x = 25, area_y = 25, max_path_length = 100, extra_points_count = 4, *args, **kwargs):
     '''
     supposed to crop the path in radius, and if the path is getting interrupted, it'll crop it till the break
 
@@ -88,7 +88,7 @@ class Pather:
         reachable = self.poe_bot.game_data.terrain.checkIfPointIsInLineOfSight(grid_pos_y=point[0], grid_pos_x=point[1])
         if reachable != False:
           # print(f'[pather] point {point} {point_index} is reachable')
-          path_part = path[point_index:point_index+5]
+          path_part = path[point_index:point_index+1+extra_points_count]
           # print(f'[pather] path part {path_part}')
           return path_part
       else:
@@ -119,6 +119,7 @@ class Pather:
     #        [1, 1],
     #        [2, 2],
     #        [3, 3],
+
     if self.debug: print(f'#generatePath return {time.time()}')
     return path
   

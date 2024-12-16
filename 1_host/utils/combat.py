@@ -14,7 +14,7 @@ import _thread
 
 import numpy as np
 
-from .constants import DANGER_ZONE_KEYS, SKILL_KEYS, FLASK_NAME_TO_BUFF, AURAS_SKILLS_TO_BUFFS, CONSTANTS
+from .constants import DANGER_ZONE_KEYS, SKILL_KEYS, SKILL_KEYS_WASD, FLASK_NAME_TO_BUFF, AURAS_SKILLS_TO_BUFFS, CONSTANTS
 from .utils import extendLine, createLineIteratorWithValues, getAngle
 
 NON_INSTANT_MOVEMENT_SKILLS = [
@@ -455,7 +455,11 @@ class Skill():
       }
     }
 
-    self.skill_key_raw = SKILL_KEYS[self.skill_index]
+    if self.poe_bot.mover.move_type == "wasd":
+      self.skill_key_raw = SKILL_KEYS_WASD[self.skill_index]
+    else:
+      self.skill_key_raw = SKILL_KEYS[self.skill_index]
+    
     self.hold_ctrl = False
     key_type = 'mouse'
     if 'DIK' in self.skill_key_raw:
