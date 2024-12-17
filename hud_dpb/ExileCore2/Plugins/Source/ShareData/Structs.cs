@@ -1,6 +1,4 @@
 ﻿using System.Collections.Generic;
-using ExileCore2.Shared.Nodes;
-// https://json2csharp.com/
 public struct ShareDataEntity
 {
     public string bounds_center_pos;
@@ -257,8 +255,28 @@ public class MapDeviceCraftMod
     public Posx1x2y1y2 pos { get; set; }
     public string text { get; set; }
 }
+
+public class WorldMapEndGameMapObj
+{
+    public List<int> sz { get; set; } // label screen zone x1 x2 y1 y2
+    public string name { get; set; }
+    public string name_raw { get; set; }
+    public List<string> icons { get; set; }
+}
+
 public class GetMapDeviceInfoObject
 {
+    public bool wm_o { get; set; } // world_map_opened
+    public List<WorldMapEndGameMapObj> av_m { get; set; } // avaliable_maps
+    public bool pmw_o { get; set; } // place_map_window_opened
+    public List<int> pmw_sz { get; set; } // place_map_window_screenzone
+    public List<InventoryObjectCustom_c> pmw_i { get; set; } // place_map_window_items
+    public List<int> pmw_ab_sz { get; set; } // place map window activatte button screenzone
+
+
+
+
+    // remove
     public bool IsOpened { get; set; }
     public int slots_count { get; set; }
     public List<int> k_m_c { get; set; } // kirak missions count [ white yellow red]

@@ -1439,120 +1439,44 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
     
     public GetMapDeviceInfoObject mapDeviceInfo(){
         GetMapDeviceInfoObject map_device_info = new GetMapDeviceInfoObject();
-        map_device_info.IsOpened = GameController.IngameState.IngameUi.MapDeviceWindow.IsVisible;
-        if (map_device_info.IsOpened != true){
+        var world_map_object = GameController.IngameState.IngameUi.WorldMap;
+        map_device_info.wm_o = world_map_object.IsVisible;
+        if (world_map_object.IsVisible == false){
             return map_device_info;
         }
 
-        // 4 or 5 slot map device
-        var fifth_slot_visible = GameController.IngameState.IngameUi.MapDeviceWindow.Children[5].Children[8].IsVisible;
-        List<InventoryObjectCustom_c> items  = new List<InventoryObjectCustom_c>();
-        int i_start = 1;
-        int i_end = 5;
-        if (fifth_slot_visible != true){
-            map_device_info.slots_count = 4;
-        } else {
-            map_device_info.slots_count = 5;
-            i_start = 8;
-            i_end = 13;
-        }
-        // get info about items in slots
-        for (int i = i_start; i < i_end; i++){
-            InventoryObjectCustom_c item = new InventoryObjectCustom_c();
-            try {
-                Element item_info = null;
-                if (map_device_info.slots_count == 4){
-                    item_info = GameController.IngameState.IngameUi.MapDeviceWindow.Children[5].Children[7].Children[i];
-                } else {
-                    item_info = GameController.IngameState.IngameUi.MapDeviceWindow.Children[5].Children[i].Children[1];
-                }
-                item = convertItem(item_info.Entity);
-                var item_rect = item_info.GetClientRect();
-                item.s = new List<int> {
-                    (int)item_rect.X, 
-                    (int)(item_rect.X + item_rect.Width), 
-                    (int)item_rect.Y, 
-                    (int)(item_rect.Y + item_rect.Height), 
-                };
-            } catch (Exception ex){
-                // DebugWindow.LogMsg($"sharedata mapDeviceInfo for items -> {ex}");
+        List<WorldMapEndGameMapObj> avaliable_maps  = new List<WorldMapEndGameMapObj>();
+        var maps = world_map_object.Descriptions;
+        foreach (var tile in maps){
+            var mapElement = tile.Element;
+            if (mapElement.IsUnlocked == false || mapElement.IsVisited == true){
+                continue;
             }
-            items.Add(item);
-        }
-        map_device_info.items = items;
+            WorldMapEndGameMapObj map_obj = new WorldMapEndGameMapObj();
+            map_obj.name = mapElement.Area.Name;
+            map_obj.name_raw = mapElement.Area.Id;
 
-        // map crafted mods window
-        map_device_info.c_m_p = new Posx1x2y1y2();
-        var map_device_craft_window_element = GameController.IngameState.IngameUi.MapDeviceWindow.Children[2].Children[0].Children[0]; 
-        map_device_info.c_m_p.x1 = (int)map_device_craft_window_element.GetClientRect().X;
-        map_device_info.c_m_p.x2 = (int)(map_device_craft_window_element.GetClientRect().X + map_device_craft_window_element.GetClientRect().Width);
-        map_device_info.c_m_p.y1 = (int)map_device_craft_window_element.GetClientRect().Y;
-        map_device_info.c_m_p.y2 = (int)(map_device_craft_window_element.GetClientRect().Y + map_device_craft_window_element.GetClientRect().Height);
-
-        // map craft mods
-        map_device_info.m_d_c = new List<MapDeviceCraftMod>();
-        foreach (var map_device_craft_element in map_device_craft_window_element.Children[1].Children){ 
-            MapDeviceCraftMod map_device_craft_mod = new MapDeviceCraftMod();
-            map_device_craft_mod.text = map_device_craft_element.Children[0].Text;
-            map_device_craft_mod.pos = new Posx1x2y1y2();
-            map_device_craft_mod.pos.x1 = (int)map_device_craft_element.GetClientRect().X;
-            map_device_craft_mod.pos.x2 = (int)(map_device_craft_element.GetClientRect().X + map_device_craft_element.GetClientRect().Width);
-            map_device_craft_mod.pos.y1 = (int)map_device_craft_element.GetClientRect().Y;
-            map_device_craft_mod.pos.y2 = (int)(map_device_craft_element.GetClientRect().Y + map_device_craft_element.GetClientRect().Height);
-            map_device_info.m_d_c.Add(map_device_craft_mod);
-        }
-
-        // map device positions
-
-        // activation button position
-        map_device_info.a_b_p = new Posx1x2y1y2();
-        var activate_button_element = GameController.IngameState.IngameUi.MapDeviceWindow.Children[5].Children[1];
-        map_device_info.a_b_p.x1 = (int)activate_button_element.GetClientRect().X;
-        map_device_info.a_b_p.x2 = (int)(activate_button_element.GetClientRect().X + activate_button_element.GetClientRect().Width);
-        map_device_info.a_b_p.y1 = (int)activate_button_element.GetClientRect().Y;
-        map_device_info.a_b_p.y2 = (int)(activate_button_element.GetClientRect().Y + activate_button_element.GetClientRect().Height);
-        
-        try {
-            map_device_info.k_m_c = new List<int>();
-            var kirak_missions_element = GameController.IngameState.IngameUi.MapDeviceWindow.ChooseMastersMods.Children[1];
-            for (int i = 1; i < 4; i++){
-                var kirak_mission_element = kirak_missions_element.Children[i];
-                map_device_info.k_m_c.Add(int.Parse(kirak_mission_element.Children[0].Text));
+            var el_rect = mapElement.GetClientRect();
+            map_obj.sz = new List<int> {
+                (int)el_rect.X, 
+                (int)(el_rect.X + el_rect.Width), 
+                (int)el_rect.Y, 
+                (int)(el_rect.Y + el_rect.Height), 
             };
-        } catch (Exception ex){
-            DebugWindow.LogMsg($"sharedata map_device_info.k_m_c -> {ex}");
-        }
 
-
-        try {
-        map_device_info.mc = new List<List<int>>();
-        var missions_element = GameController.IngameState.IngameUi.MapDeviceWindow.ChooseMastersMods;
-        foreach (var mission_element in missions_element.Children[0].Children){
-            List<int> counts = new();
-            foreach (var count_el in mission_element.Children[0].Children){
-                counts.Add(int.Parse(count_el.Children[0].Text));
+            map_obj.icons = new List<string>();
+            foreach (var m in mapElement.Children[0].Children){
+                map_obj.icons.Add(m.TextureName);
             }
-            map_device_info.mc.Add(counts);
+            avaliable_maps.Add(map_obj);
         }
-        } catch (Exception ex){
-            DebugWindow.LogMsg($"sharedata map_device_info.mc -> {ex}");
-        }
+        map_device_info.av_m = avaliable_maps;
 
-        try {
-        map_device_info.i_p = new List<string>();
-        var invitations_panel_element = GameController.IngameState.IngameUi.MapDeviceWindow.Children[5].Children[2].Children;
-        var indexes_to_check = new List<int>{0,2};
-        foreach (var invitation_element_index in indexes_to_check){
-            var invitation_element = invitations_panel_element[invitation_element_index];
-            var invitation_progress_text = invitation_element.Tooltip.Children[0].Children[0].Text; 
-            map_device_info.i_p.Add(invitation_progress_text);
-        }
-        } catch (Exception ex){
-            DebugWindow.LogMsg($"sharedata map_device_info.i_p -> {ex}");
-        }
-
+        // place map window
+        
 
         return map_device_info;
+
     }
     
     public List<string> getPreloadedFiles(){
