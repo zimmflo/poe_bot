@@ -955,7 +955,7 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
                 (int)(el_rect.Y + el_rect.Height), 
             };
             blue_line_obj.t = blue_line.TextNoTags;
-            blue_line_obj.v = blue_line.IsVisible ? 1 : 0;
+            blue_line_obj.v = blue_line.IsVisibleLocal ? 1 : 0;
             el.elements.Add(blue_line_obj);
         }
         return el;
@@ -1438,7 +1438,6 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
 
         return converted_item;
     }
-    
     public GetMapDeviceInfoObject mapDeviceInfo(){
         GetMapDeviceInfoObject map_device_info = new GetMapDeviceInfoObject();
         var atlas_panel_object = GameController.IngameState.IngameUi.WorldMap.AtlasPanel;
@@ -1613,30 +1612,23 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
 
             // area related
             // response.IsLoading = GameController.Game.IsLoading;
-            response.IsLoading = GameController.IngameState.InGame;
-            response.ipv = GameController.IngameState.IngameUi.InvitesPanel.IsVisible;
+            response.IsLoading = !GameController.IngameState.InGame;
+            response.ipv = false;
+            var loading_panel = GameController.IngameState.IngameUi.GetChildAtIndex(108);
+            if (loading_panel != null){
+                response.ipv = loading_panel.IsVisible;
+            }
+            // response.ipv = GameController.IngameState.IngameUi.InvitesPanel.IsVisible;
             response.IsLoading_b = false;
 
+            long loading_state_numbers = 2975808378400;
             foreach (var game_state in GameController.Game.ActiveGameStates){
-                int match_count = 0; 
-                var game_state_str = $"{game_state.Address:X}";
-                // DebugWindow.LogMsg($"checking full {game_state_str}");
-                var game_state_str_last_three = game_state_str.Substring(10-2);
-                // DebugWindow.LogMsg($"checking three {game_state_str_last_three}");
-                foreach (var current_game_state in GameController.Game.CurrentGameStates){
-                    var curr_game_state_str = $"{current_game_state.Address:X}";
-                    var curr_game_state_str_last_three = curr_game_state_str.Substring(10-2);
-                    // DebugWindow.LogMsg($"checking {game_state_str_last_three} in {curr_game_state_str_last_three}");
-                    if (game_state_str_last_three == curr_game_state_str_last_three){
-                        match_count += 1;
-                        // DebugWindow.LogMsg($"match_count {match_count}");
-                    }
-                }
-                // DebugWindow.LogMsg($"match_count {match_count} in {game_state_str_last_three}");
-                if (match_count == 2){
+                // 2975808381472 - escape menu
+                // 2975808378400 - loading
+                if (game_state.Address == loading_state_numbers){
                     response.IsLoading_b = true;
+                    break;
                 }
-
             }
             response.area_raw_name = GameController.Area.CurrentArea.Area.RawName;
             response.ah = GameController.Area.CurrentArea.Hash;
