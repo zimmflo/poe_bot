@@ -33,6 +33,13 @@ class Posx1x2y1y2:
     return [self.x1, self.x2, self.y1, self.y2]
   def getCenter(self):
     return [int( (self.x2 + self.x1) / 2 ), int( (self.y1+self.y2) / 2 )]
+  def getCorners(self):
+    return [
+      [self.x1, self.y1],
+      [self.x2, self.y1],
+      [self.x2, self.y2],
+      [self.x1, self.y2]
+    ]
 class TotalCurrentReserved:
   total:int
   current:int

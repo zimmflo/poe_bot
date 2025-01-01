@@ -81,6 +81,12 @@ class Backend():
     data = self.doRequestTillGetJson(url)
     if self.debug: print(f'#getIncursionUi return {time.time()}')
     return data
+  def getMapInfo(self):
+    if self.debug: print(f'#getMapInfo call {time.time()}')
+    url = f'{self.endpoint}/getMapInfo'
+    data = self.doRequestTillGetJson(url)
+    if self.debug: print(f'#getMapInfo return {time.time()}')
+    return data
   def getWholeData(self):
     if self.debug: print(f'#getWholeData call {time.time()}')
     url = f'{self.endpoint}/getData?type=full'
@@ -308,5 +314,18 @@ class Backend():
     url = f'{self.endpoint}/getLocationOnScreen?x={x}&y={y}&z={z}&'
     data = self.doRequestTillGetJson(url)
     if self.debug: print(f'#getLocationOnScreen return {time.time()}')
+    return data
+  def getEntityIdByPlayerName(self,entity_ign:str):
+    if self.debug: print(f'#getEntityIdByPlayerName call {time.time()}')
+    url = f'{self.endpoint}/getEntityIdByPlayerName?type={entity_ign}&'
+    data = self.doRequestTillGetJson(url)
+    if self.debug: print(f'#getEntityIdByPlayerName return {time.time()}')
+    return data
+  
+  def getPartyInfo(self):
+    if self.debug: print(f'#getPartyInfo call {time.time()}')
+    url = f'{self.endpoint}/getPartyInfo'
+    data = self.doRequestTillGetJson(url)
+    if self.debug: print(f'#getPartyInfo return {time.time()}')
     return data
   

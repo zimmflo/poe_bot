@@ -485,7 +485,7 @@ class HelperFunctions:
       map_device = next( (e for e in poe_bot.game_data.entities.all_entities if 'MappingDevice' in e.path), None)
       if not map_device:
         raise Exception("No mapping device")
-    portals = list(filter(lambda entity: 'MultiplexPortal' in entity.path, poe_bot.game_data.entities.all_entities))
+    portals = poe_bot.game_data.entities.town_portals
     if len(portals) == 0:
       raise Exception("No portals")
     

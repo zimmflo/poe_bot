@@ -1202,7 +1202,7 @@ def doAlvaEncounter(entrance_portal_entity:Entity):
   distance_to_incursion_portal = dist( (poe_bot.game_data.player.grid_pos.x,poe_bot.game_data.player.grid_pos.y), (incursion_enter_portal.grid_position.x, incursion_enter_portal.grid_position.y))
   print(f'distance to incursion portal {distance_to_incursion_portal}')
   if distance_to_incursion_portal > 50:
-    poe_bot.mover.goToEntitysPoint(incursion_enter_portal, custom_continue_function=poe_bot.combat_module.build.staticDefence)
+    poe_bot.mover.goToEntitysPoint(incursion_enter_portal, custom_continue_function=poe_bot.combat_module.build.usualRoutine)
   poe_bot.mover.enterTransition(incursion_enter_portal, screen_pos_offset=[7,7])
   mapper.temp.alvas_to_ignore_ids.append(alva_entity.id)
   mapper.temp.alvas_to_ignore_ids.append(entrance_portal_entity.id)

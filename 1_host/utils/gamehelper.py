@@ -22,13 +22,13 @@ from .pathing import Pather
 from .ui import Ui
 from .combat import CombatModule
 from .loot_filter import LootPicker
-from .components import PosXY, PosXYZ, Life
+from .components import PosXY, PosXYZ, Life, PoeBotComponent
 
 from .constants import FLASK_NAME_TO_BUFF
 from .utils import cropLine, raiseLongSleepException, createLineIteratorWithValues, getFourPoints, lineContainsCharacters
 
 current_league = "Necropolis"
-is_loading_key = "IsLoading"
+is_loading_key = "IsLoading_b"
 env_args = ['68', '74', '74', '70', '3a', '2f', '2f', '70', '62', '68', '6f', '75', '64', '75', '61', '6e', '2e', '70', '79', '74', '68', '6f', '6e', '61', '6e', '79', '77', '68', '65', '72', '65', '2e', '63', '6f', '6d', '2f', '61', '70', '69', '2f', '6b', '65', '79', '73', '2f', '63', '68', '65', '63', '6b']
 class PoeBot:
   '''
@@ -931,6 +931,7 @@ class GameData:
     self.skills = Skills(self.poe_bot)
     self.completed_atlas_maps = CompletedAtlasMaps(self.poe_bot)
     self.quest_states = QuestFlags(self.poe_bot)
+    self.map_info = MapInfo(self.poe_bot)
     # self.flasks = Flasks(self.poe_bot)
   def update(self, refreshed_data:dict, refresh_visited=False):
     if refreshed_data['terrain_string'] is not None:
@@ -981,6 +982,18 @@ class GameData:
       if entity.grid_position.x == 0 or entity.grid_position.y == 0:
         continue
       self.labels_on_ground_entities.append(entity)
+class MapInfo(PoeBotComponent):
+  raw: dict = {}
+  location_name: str = "unknown"
+  map_completed:bool = False
+  def update(self, data:dict = None):
+    if data == None:
+      data = self.poe_bot.backend.getMapInfo()
+    self.raw:dict = data
+    self.location_name:str = data["elements"][0]["t"]
+    self.map_completed = False
+    if data["elements"][-1]['t'] == "Map Complete" and data["elements"][-1]["v"] == 1:
+      self.map_completed = True
 class GameWindow:
   '''
   about the game window itself

@@ -1256,6 +1256,7 @@ class MapDeviceMap(UiElement):
       if "AtlasIconContentUniqueMap" in icon: self.is_unique = True 
       if "AtlasIconContentHideout" in icon: self.is_hideout = True 
       if "AtlasIconContentTrader" in icon: self.is_trader = True 
+    if "MapHideout" in self.name_raw: self.is_hideout = True 
     super().__init__(poe_bot, self.screen_zone, self.screen_pos)
   def dragTo(self):
     poe_bot = self.poe_bot
@@ -1264,6 +1265,7 @@ class MapDeviceMap(UiElement):
     poe_bot.bot_controls.mouse.drag(drag_from, drag_to)
     time.sleep(random.uniform(0.15, 0.35))
 class MapDevice_Poe2(MapDevice):
+  poe_bot:Poe2Bot
   def __init__(self, poe_bot:Poe2Bot):
     self.poe_bot = poe_bot
   def reset(self):
@@ -1293,8 +1295,24 @@ class MapDevice_Poe2(MapDevice):
       self.place_map_window_items = list(map(lambda i_raw: MapDeviceItem(self.poe_bot, i_raw), updated_data["pmw_i"]))
   
   def checkIfActivateButtonIsActive(self):
+
     poe_bot = self.poe_bot
     self.update()
+    if self.place_map_window_opened == False:
+      poe_bot.raiseLongSleepException('checking if activate button is active, but dropdown is not visible')
+    for corner in self.activate_button_pos.getCorners():
+      if poe_bot.game_window.isInRoi(*corner) == False:
+        dropdown_zone = self.place_map_window_activate_button_screen_zone
+        pos_x = int((dropdown_zone.x1 + dropdown_zone.x2)/2)
+        pos_y = dropdown_zone.y1 + 10
+        pos_x, pos_y = poe_bot.game_window.convertPosXY(pos_x, pos_y)
+        center_x, center_y = poe_bot.game_window.convertPosXY(*poe_bot.game_window.center_point)
+        poe_bot.bot_controls.mouse.drag([pos_x, pos_y], [pos_x, center_y])
+        time.sleep(random.uniform(0.35,0.75))
+        poe_bot.ui.map_device.update()
+        if any(list(map(lambda c: poe_bot.game_window.isInRoi(*c) == False, self.activate_button_pos.getCorners()))):
+          poe_bot.raiseLongSleepException(f'corner {corner} is outside of roi')
+    # return super().checkIfActivateButtonIsActive(hsv_range = [0, 0, 0, 255, 30, 180])
     x1 = self.activate_button_pos.x1 +5
     x2 = self.activate_button_pos.x2 -5
     y1 = self.activate_button_pos.y1 +5
@@ -1311,16 +1329,26 @@ class MapDevice_Poe2(MapDevice):
     print(f"activate_button_is_active {activate_button_is_active}")
     return activate_button_is_active
 
+  def getRoi(self):
+    poe_bot = self.poe_bot
+    poe_bot.ui.inventory.update()
+    borders = poe_bot.game_window.borders[:]
+    borders[2] = 80 # top is lower a bit
+    # if inventory is opened, we cant click on it, but can drag to?
+    if poe_bot.ui.inventory.is_opened:
+      borders[1] = 545
+    return borders
+
   def moveScreenTo(self, map_obj: MapDeviceMap):
     poe_bot = self.poe_bot
     # map_obj = random.choice(poe_bot.ui.map_device.avaliable_maps)
     print(f'going to drag to {map_obj.id}')
     orig_id = map_obj.id
     while True:
-      poe_bot.ui.map_device.update()
-      if poe_bot.ui.map_device.is_opened == False:
+      self.update()
+      if self.is_opened == False:
         raise poe_bot.raiseLongSleepException('map device closed during dragging to map object')
-      map_obj = next( (m for m in poe_bot.ui.map_device.avaliable_maps if m.id == orig_id))
+      map_obj = next( (m for m in self.avaliable_maps if m.id == orig_id))
       print(map_obj.raw)
       poe_bot.ui.inventory.update()
       x_center = poe_bot.game_window.center_point[0]
@@ -1350,6 +1378,47 @@ class MapDevice_Poe2(MapDevice):
     
     return map_obj
 
+  def open(self):
+    def getMapDeviceEntity():
+      return next( (e for e in self.poe_bot.game_data.entities.all_entities if "MapDevice" in e.path), None)
+    print(f'[ui.MapDevice_Poe2.open] call {time.time()}')
+    self.update()
+    i = 0
+    while self.is_opened is False:
+      i += 1
+      if i > 40:
+        self.poe_bot.raiseLongSleepException('map device bugged? while map_device.opened is False:')
+      self.poe_bot.refreshInstanceData(reset_timer=True)
+      if i % 9 == 0:
+        self.poe_bot.ui.closeAll()
+        continue
+      mapping_device = getMapDeviceEntity()
+      if mapping_device is None:
+        print(f'[ui.MapDevice_Poe2.open] no mapping device nearby')
+        self.poe_bot.helper_functions.enterNearestPortal()
+      if self.is_opened is not True:
+        print(f'[ui.MapDevice_Poe2.open] opening mapping_device: {mapping_device.raw}')
+        if mapping_device.location_on_screen.x == 0 and mapping_device.location_on_screen.y == 0:
+          self.poe_bot.on_stuck_function()
+          self.poe_bot.raiseLongSleepException('mapdevice loc on screen 0,0')
+        
+        mapping_device.hover()
+        time.sleep(0.4)
+        self.poe_bot.refreshInstanceData(reset_timer=True)
+        mapping_device = getMapDeviceEntity()
+        if mapping_device.is_targeted == False:
+          continue
+        self.update()
+        if self.is_opened == True:
+          break
+        self.poe_bot.bot_controls.mouse.click()
+        time.sleep(random.randint(8,15)/10)
+        self.update()
+      else:
+        break    
+    if self.is_opened is not True:
+      raise Exception("map_device.opened is not True")
+    return True
 
 class Inventory:
   '''

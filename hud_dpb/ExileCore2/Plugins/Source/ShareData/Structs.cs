@@ -103,11 +103,18 @@ public class PartyMember_c{
     public bool is_leader; // visible
     public string area_raw_name { get; set; } // text
     public bool same_location; // visible
+    public List<int> sz { get; set; } // label screen zone x1 x2 y1 y2
 
 }
 public class PartyInfo_c{
     public List<PartyMember_c> party_members { get; set; }
 }
+
+public class AuctionHouseUi_c{
+    public int v; // visible
+    public List<int> sz { get; set; } // label screen zone x1 x2 y1 y2
+}
+
 
 public class BlueLine_c{
     public string t { get; set; } // text

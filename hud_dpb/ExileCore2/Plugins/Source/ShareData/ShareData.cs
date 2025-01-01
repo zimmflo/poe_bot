@@ -389,7 +389,6 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
                 (int)screenCoord.Y
             };
             return Newtonsoft.Json.JsonConvert.SerializeObject(coords);
-        
         } else if (request.Url.AbsolutePath == "/getScreenPos"){
             int y = int.Parse(request.RawUrl.Split(new [] { "y=" }, StringSplitOptions.None)[1].Split(new [] { "&" }, StringSplitOptions.None)[0]);
             int x = int.Parse(request.RawUrl.Split(new [] { "x=" }, StringSplitOptions.None)[1].Split(new [] { "&" }, StringSplitOptions.None)[0]);
@@ -470,6 +469,13 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
             return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
         } else if (request.Url.AbsolutePath =="/getMapInfo"){
             var response = getMapInfo();
+            return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
+        } else if (request.Url.AbsolutePath =="/getEntityIdByPlayerName"){
+            string player_name = request.RawUrl.Split(new [] { "type=" }, StringSplitOptions.None)[1].Split(new [] { "&" }, StringSplitOptions.None)[0];
+            var response = getEntityIdByPlayerName(player_name);
+            return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
+        } else if (request.Url.AbsolutePath =="/getPartyInfo"){
+            var response = getPartyInfo();
             return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
         } else if (request.Url.AbsolutePath =="/getIncursionUi"){
             try{
@@ -972,6 +978,39 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
         };
         return el;
     }
+    public PartyInfo_c getPartyInfo(){
+        PartyInfo_c el = new PartyInfo_c();
+        el.party_members = new List<PartyMember_c>();
+        if (GameController.IngameState.IngameUi.PartyElement.IsVisible == false){
+            return el;
+        }
+        var party_leader_social_element = GameController.IngameState.IngameUi.SocialPanel.GetChildFromIndices([2,0,5,1,2,0,1,0,1,0,1,0,0,0,1,0,0,0]);
+        string party_leader_ign = "asd";
+        if (party_leader_social_element != null){
+            party_leader_ign = party_leader_social_element.Text;
+        }
+        DebugWindow.LogMsg($"party_leader_ign {party_leader_ign}");
+        foreach (var party_member_row in GameController.IngameState.IngameUi.PartyElement.Children[0].Children){
+            PartyMember_c party_el = new PartyMember_c();
+            party_el.ign = party_member_row.GetChildFromIndices([0,0]).Text;
+            party_el.is_leader = (party_leader_ign == party_el.ign);
+            party_el.area_raw_name = party_member_row.GetChildFromIndices([2]).Text;
+            el.party_members.Add(party_el); 
+        }
+        return el;
+    }
+    public int? getEntityIdByPlayerName(string player_name){
+        int? player_id = null;
+        foreach (var entity in GameController.EntityListWrapper.Entities){
+            var entity_player_component = entity.GetComponent<Player>();
+            if (entity_player_component != null){
+                if (entity_player_component.PlayerName == player_name){
+                    return (int)entity.Id;
+                }
+            }
+        }
+        return player_id;
+    }
     public UltimatumNextWaveUi getUltimatumNextWaveUi(){
         UltimatumNextWaveUi el = new UltimatumNextWaveUi();
         var ultimatum_next_wave_ui_element = GameController.IngameState.IngameUi.Root.Children[1].Children[99];
@@ -1453,13 +1492,17 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
         var maps = atlas_panel_object.Descriptions;
         foreach (var tile in maps){
             var mapElement = tile.Element;
-            if (mapElement.IsUnlocked == false || mapElement.IsVisited == true){
+            bool can_run = false;
+            if ((mapElement.IsUnlocked == false && mapElement.IsVisited == true) || (mapElement.IsUnlocked == true && mapElement.IsVisited == false)){
+                can_run = true;
+            }
+            if (can_run == false){
                 continue;
             }
             WorldMapEndGameMapObj map_obj = new WorldMapEndGameMapObj();
             map_obj.name = mapElement.Area.Name;
             map_obj.name_raw = mapElement.Area.Id;
-            map_obj.id = mapElement.IndexInParent ?? 0;
+            map_obj.id = mapElement.Area.Index;
 
             var el_rect = mapElement.GetClientRect();
             map_obj.sz = new List<int> {
@@ -1621,11 +1664,14 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
             // response.ipv = GameController.IngameState.IngameUi.InvitesPanel.IsVisible;
             response.IsLoading_b = false;
 
-            long loading_state_numbers = 2975808378400;
             foreach (var game_state in GameController.Game.ActiveGameStates){
-                // 2975808381472 - escape menu
-                // 2975808378400 - loading
-                if (game_state.Address == loading_state_numbers){
+                // [-4:] 6220 - escape menu
+                // [-4:] 5620 - loading
+
+                string game_state_str = $"{game_state.Address:X}";
+                string lastFourDigits = game_state_str.Substring(game_state_str.Length - 4);
+                // DebugWindow.LogMsg($"checking full {game_state_str}");
+                if (lastFourDigits == "5620"){
                     response.IsLoading_b = true;
                     break;
                 }

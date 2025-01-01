@@ -92,14 +92,15 @@ class CombatModule():
     if res is True:
       return True
     # get to entity first
-    print(f'getting closer to entity')
-    mover.goToEntity(
-      entity_to_go=entity, 
-      min_distance=70, 
-      custom_continue_function=build.usualRoutine, 
-      custom_break_function=entityIsDead,
-      step_size=step_size
-    )
+    if entity.distance_to_player > 100:
+      print(f'getting closer to entity')
+      mover.goToEntitysPoint(
+        entity_to_go=entity, 
+        min_distance=100, 
+        custom_continue_function=build.usualRoutine, 
+        # custom_break_function=entityIsDead,
+        step_size=step_size
+      )
     
     print(f'killing it')
     # kill it
@@ -555,6 +556,13 @@ class Skill():
   def moveThenUse(self, grid_pos_x = 0, grid_pos_y = 0, updated_entity:Entity = None, wait_for_execution = True, force = False, use_first = False):
       
     
+    # hover if needed
+    # send press skill button
+    # wait (shorter)
+    # move
+    # return True
+    # send release skill button
+
     use_func = lambda: self.use(grid_pos_x, grid_pos_y, updated_entity, False, force)
     move_func = lambda: self.poe_bot.mover.move()
 
@@ -4973,7 +4981,7 @@ class PathfinderPoisonConc2(Build):
     self.last_explosion_locations = {
       # "use_time": [grid pos area x1 x2 y1 y2]
     }
-    self.pconc_area = 15
+    self.pconc_area = 20
     self.pconc_area_reset_timer_sec = 4 
     self.pconc_area_in_legs_reset_timer_sec = 2 
 
@@ -4991,6 +4999,7 @@ class PathfinderPoisonConc2(Build):
       pconc_index = self.poe_bot.game_data.skills.internal_names.index(pconc_on_panel)
       # print(pconc_on_panel, pcon)
       self.pconc = SkillWithDelay(poe_bot=poe_bot, skill_index=pconc_index, min_delay=random.randint(1,5)/100, display_name=pconc_internal_name, min_mana_to_use=0)
+      self.pconc.sleep_multiplier = 0.2
 
     curse_on_panel = next( (s for s in self.poe_bot.game_data.skills.internal_names if s in curse_internal_names), None)
     if curse_on_panel != None:
@@ -5015,6 +5024,9 @@ class PathfinderPoisonConc2(Build):
     if mover is not None:
       print(f'calling usual routine')
 
+      can_throw_pconc = True
+      can_dodge = True
+
       _t = time.time()
       if self.dodge_roll.last_use_time + 0.35 > _t or self.pconc.last_use_time + (self.pconc.getCastTime() / 2) > _t:
         print(f'probably casting smth atm')
@@ -5024,6 +5036,10 @@ class PathfinderPoisonConc2(Build):
       throw_pconc_at = None # [x,y] grid pos
       enemy_to_attack:Entity = None
       search_radius = 25
+      really_close_enemies_distance = 50
+      skill_cd_short = 1.3
+      skill_cd_long = 2.0
+      pconc_explode_area = self.pconc_area
       search_angle = 90
       search_angle_half = search_angle/2
 
@@ -5058,14 +5074,14 @@ class PathfinderPoisonConc2(Build):
         print(f'surrounded')
         for _i in range(1):
           did_throw_pconc_in_legs_recently = False
-          #recently for throw in legs reduced timer
-          last_explosion_locations_in_legs_keys = list(filter(lambda k: k + self.pconc_area_in_legs_reset_timer_sec > _t, list(self.last_explosion_locations.keys()) ))
-          last_explosion_locations_in_legs = list(map(lambda k: self.last_explosion_locations[k], last_explosion_locations_in_legs_keys))
-          for zone in last_explosion_locations_in_legs:
-            if self.poe_bot.game_data.player.isInZone(*zone):
-              did_throw_pconc_in_legs_recently = True
-              print(f'did throw pconc nearby recently')
-              break
+          # #recently for throw in legs reduced timer
+          # last_explosion_locations_in_legs_keys = list(filter(lambda k: k + self.pconc_area_in_legs_reset_timer_sec > _t, list(self.last_explosion_locations.keys()) ))
+          # last_explosion_locations_in_legs = list(map(lambda k: self.last_explosion_locations[k], last_explosion_locations_in_legs_keys))
+          # for zone in last_explosion_locations_in_legs:
+          #   if self.poe_bot.game_data.player.isInZone(*zone):
+          #     did_throw_pconc_in_legs_recently = True
+          #     print(f'did throw pconc nearby recently')
+          #     break
           
           #TODO add cooldown to it?
           if did_throw_pconc_in_legs_recently == False:
@@ -5079,22 +5095,23 @@ class PathfinderPoisonConc2(Build):
               throw_pconc_at = [poe_bot.game_data.player.grid_pos.x, poe_bot.game_data.player.grid_pos.y]
             break
           # if dodged recently and not throwing pconc atm
-          if self.dodge_roll.last_use_time + 1.5 < _t:
+          if self.dodge_roll.last_use_time + 1 < _t:
             need_dodge = True
       
       # throw pconc for clear
       if need_dodge != True and throw_pconc_at == None and len(nearby_enemies) != 0:
         print('going to clear')
         for _i in range(1):
-          really_close_enemies = list(filter(lambda e: e.distance_to_player < 20, nearby_enemies))
+          really_close_enemies = list(filter(lambda e: e.distance_to_player < really_close_enemies_distance, nearby_enemies))
           # internal cd for clear
           if len(really_close_enemies) != 0:
             skill_cd = 1.3
           else:
             skill_cd = 2
-          if self.pconc.last_use_time + skill_cd > _t:
-            print(f'internal cd for clear {skill_cd}')
-            break
+
+          # if self.pconc.last_use_time + skill_cd > _t:
+          #   print(f'internal cd for clear {skill_cd}')
+          #   break
 
           # sort enemies, if visible and not in last explosion zones 
           enemies_for_clear:List[Entity] = []
@@ -5109,9 +5126,10 @@ class PathfinderPoisonConc2(Build):
             if was_in_explosion_area != True:
               enemies_for_clear.append(e)
           if len(enemies_for_clear) == 0:
+            print(f'no enemies outside of the zone')
             break
 
-          really_close_enemies = list(filter(lambda e: e.distance_to_player < 20, enemies_for_clear))
+          really_close_enemies = list(filter(lambda e: e.distance_to_player < really_close_enemies_distance, enemies_for_clear))
           
           if really_close_enemies:
             skill_cd = 1.3
@@ -5119,10 +5137,16 @@ class PathfinderPoisonConc2(Build):
             skill_cd = 2
 
           # if didnt use pconc for long, throw somewhere even if theres 1 attack val
-          if self.pconc.last_use_time + skill_cd * 2 > _t:
+          if True:
+          # if self.pconc.last_use_time + skill_cd * 2 < _t:
             print("didnt use pconc for long, throw somewhere even if theres 1 attack val")
             enemies_for_clear.sort(key=lambda e: e.calculateValueForAttack(), reverse=True)
             enemy_to_attack = enemies_for_clear[0]
+            print(f'enemy_to_attack.attack_value {enemy_to_attack.attack_value} {enemy_to_attack.raw}')
+            # min 1, max 4
+            attack_val_mult =  min(max(enemy_to_attack.attack_value, 1), 3)
+            if enemy_to_attack.attack_value > 4:
+              pconc_explode_area = int(self.pconc_area * attack_val_mult)
             # if enemies_for_clear[0].attack_value > 1:
             #   enemy_to_attack = enemies_for_clear[0]
           else:
@@ -5145,6 +5169,7 @@ class PathfinderPoisonConc2(Build):
 
 
       # result action
+      enemy_to_attack_cropped_pos = False
       if enemy_to_attack:
         #TODO convert entity pos into grid pos
         throw_pconc_at = [enemy_to_attack.grid_position.x, enemy_to_attack.grid_position.y]
@@ -5152,19 +5177,23 @@ class PathfinderPoisonConc2(Build):
         if dist(poe_bot.game_data.player.grid_pos.toList(), throw_pconc_at) > 15:
           throw_pconc_at = extendLine(poe_bot.game_data.player.grid_pos.toList(), throw_pconc_at, 0.75)
           print(f'pconc throw reduced to {throw_pconc_at}')
+          enemy_to_attack_cropped_pos = True
+
           
       if throw_pconc_at:
-        self.pconc.sleep_multiplier = 0.2
         if self.pconc.canUse() and self.pconc.use(pos_x=throw_pconc_at[0], pos_y=throw_pconc_at[1], wait_for_execution=True) == True:
-          self.last_explosion_locations[_t] = [throw_pconc_at[0] - self.pconc_area, throw_pconc_at[0] + self.pconc_area, throw_pconc_at[1] - self.pconc_area, throw_pconc_at[1] + self.pconc_area]
+          self.last_explosion_locations[_t] = [throw_pconc_at[0] - pconc_explode_area, throw_pconc_at[0] + pconc_explode_area, throw_pconc_at[1] - pconc_explode_area, throw_pconc_at[1] + pconc_explode_area]
           print(f'adding explosion zone {_t} with {self.last_explosion_locations[_t]}')
+          if enemy_to_attack_cropped_pos:
+            self.last_explosion_locations[_t+0.001] = [enemy_to_attack.grid_position.x - pconc_explode_area, enemy_to_attack.grid_position.x + pconc_explode_area, enemy_to_attack.grid_position.y - pconc_explode_area, enemy_to_attack.grid_position.y + pconc_explode_area]
           
-          return True
-          attack_skill_used = True
+          # return True
+          return False
 
       if need_dodge:
         self.dodge_roll.use(pos_x=mover.grid_pos_to_step_x, pos_y=mover.grid_pos_to_step_y)
-        return True
+        return False
+        # return True
 
       return False
     
@@ -5203,12 +5232,11 @@ class PathfinderPoisonConc2(Build):
       return True
     distance_to_entity = dist( (entity_to_kill.grid_position.x, entity_to_kill.grid_position.y), (poe_bot.game_data.player.grid_pos.x, poe_bot.game_data.player.grid_pos.y) ) 
     print(f'distance_to_entity {distance_to_entity} in killUsual')
-    if distance_to_entity > min_distance:
+    if entity_to_kill.isInRoi() == False or entity_to_kill.isInLineOfSight() == False:
+    # if distance_to_entity > min_distance:
       print('getting closer in killUsual ')
       return False
-    if entity_to_kill.isInLineOfSight() is False:
-      print('entity_to_kill.isInLineOfSight() is False')
-      return False
+
 
 
     start_time = time.time()
@@ -5238,7 +5266,7 @@ class PathfinderPoisonConc2(Build):
 
       distance_to_entity = dist( (entity_to_kill.grid_position.x, entity_to_kill.grid_position.y), (poe_bot.game_data.player.grid_pos.x, poe_bot.game_data.player.grid_pos.y) ) 
       print(f'distance_to_entity {distance_to_entity} in killUsual')
-      if distance_to_entity > min_distance:
+      if entity_to_kill.isInRoi() == False or entity_to_kill.isInLineOfSight() == False:
         print('getting closer in killUsual ')
         break
       current_time = time.time()
@@ -5249,7 +5277,7 @@ class PathfinderPoisonConc2(Build):
 
 
 
-      if skill_used is False and self.pconc and self.pconc.canUse():
+      if skill_used is False and self.pconc and self.pconc.last_use_time + (self.pconc.getCastTime() / 2) < time.time():
         if self.pconc.use(updated_entity=entity_to_kill, wait_for_execution=False) != False:
           skill_used = True
         
@@ -5258,15 +5286,15 @@ class PathfinderPoisonConc2(Build):
 
       print('kiting')
       if distance_to_entity > keep_distance:
+        print('around')
+        point = self.poe_bot.game_data.terrain.pointToRunAround(entity_to_kill.grid_position.x, entity_to_kill.grid_position.y, kite_distance+random.randint(-1,1), check_if_passable=True, reversed=reversed_run)
+        mover.move(grid_pos_x = point[0], grid_pos_y = point[1])
+      else:
         print('away')
         p0 = (entity_to_kill.grid_position.x, entity_to_kill.grid_position.y)
         p1 = (poe_bot.game_data.player.grid_pos.x, poe_bot.game_data.player.grid_pos.y)
         go_back_point = self.poe_bot.pather.findBackwardsPoint(p1, p0)
         poe_bot.mover.move(*go_back_point)
-      else:
-        print('around')
-        point = self.poe_bot.game_data.terrain.pointToRunAround(entity_to_kill.grid_position.x, entity_to_kill.grid_position.y, kite_distance+random.randint(-1,1), check_if_passable=True, reversed=reversed_run)
-        mover.move(grid_pos_x = point[0], grid_pos_y = point[1])
 
 
 

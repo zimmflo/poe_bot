@@ -383,7 +383,7 @@ class TSP:
       
     self.tsp_points = sorted_points_to_explore
     return sorted_points_to_explore
-  def sortedPointsForDiscovery(self, start_pos:List[int]|None = None):
+  def sortedPointsForDiscovery(self, start_pos:List[int]|None = None, add_start_point_weight = False):
     '''
     [ [x,y], [x,y] ]
     '''
@@ -402,6 +402,8 @@ class TSP:
       paths_length = []
       for point in points_for_discovery_copy:
         path = dist((current_pos_x, current_pos_y), (point[0], point[1]) )
+        if add_start_point_weight != False:
+          path += dist((point[0], point[1]), (start_pos_x, start_pos_y))
         paths.append(point)
         paths_length.append(path)
 

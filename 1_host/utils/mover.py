@@ -12,7 +12,7 @@ import time
 from math import dist
 import matplotlib.pyplot as plt
 
-from .utils import alwaysFalseFunction, createLineIterator, getAngle, angleOfLine
+from .utils import alwaysFalseFunction, createLineIterator, getAngle, angleOfLine, pointOnCircleByAngleAndLength, createLineIteratorWithValues
 from .constants import DOOR_KEYWORDS
 
 # doors have component triggerable blockade
@@ -33,10 +33,10 @@ class Mover:
   def setMoveType(self, move_type):
     if move_type == "mouse":
       self.move_func = self.moveUsingMouse
-      self.extra_points_count = 4
+      # self.stop_func = self.stopMouse
     elif move_type == "wasd":
       self.move_func = self.moveWASD
-      self.extra_points_count = 0
+      # self.stop_func = self.stopWASD
     else:
       raise Exception(f'unknown move type {move_type}, supposed to be either "mouse" or "wasd"')
     self.move_type = move_type
@@ -353,61 +353,62 @@ class Mover:
         self.move(grid_pos_x = point[0], grid_pos_y = point[1])
         # arrived, stop
         if release_mouse_on_end is True:
-          print("# TODO check if mouse already released")
-          print(f'trying to release mouse')
-          last_mouse_pos_x, last_mouse_pos_y = -1, -1
-          for i in range(random.randint(3,5)):
-            poe_bot.last_action_time = 0 # reset action delay
-            poe_bot.refreshInstanceData()
-            path = createLineIterator(np.array((int(poe_bot.game_data.player.grid_pos.x), int(poe_bot.game_data.player.grid_pos.y))),np.array((grid_pos_to_go_x, grid_pos_to_go_y)))
-            self.distance_to_target = dist((grid_pos_to_go_y, grid_pos_to_go_x), [poe_bot.game_data.player.grid_pos.y,poe_bot.game_data.player.grid_pos.x])
-            print(f'distance_to_target on releasing mouse {self.distance_to_target}')
-            if self.distance_to_target < 20:
-              print(f'breaking cos distance_to_target < 20 {self.distance_to_target} ')
-              break
-            current_path = cropPath(path, step_size,step_size, current_pos_x=int(poe_bot.game_data.player.grid_pos.x), current_pos_y=int(poe_bot.game_data.player.grid_pos.y), max_path_length=100, extra_points_count=self.extra_points_count)
-            if len(current_path) == 0:
-              print('len(current_path) == 0 in release_mouse_cycles, generating new path')
-              if self.distance_to_target < 30:
-                print(f'lineiterator cos distance_to_target {self.distance_to_target}')
-                path = createLineIterator(np.array((int(poe_bot.game_data.player.grid_pos.x), int(poe_bot.game_data.player.grid_pos.y))),np.array((grid_pos_to_go_x, grid_pos_to_go_y)))
-              else:
-                print(f'astar cos distance_to_target {self.distance_to_target}')
-                path = poe_bot.pather.generatePath((int(poe_bot.game_data.player.grid_pos.y), int(poe_bot.game_data.player.grid_pos.x)), (grid_pos_to_go_y, grid_pos_to_go_x) )
-              # reset timer
-              poe_bot.last_action_time = 0 # reset action delay
-              continue
+          self.stopMoving()
+          # print("# TODO check if mouse already released")
+          # print(f'trying to release mouse')
+          # last_mouse_pos_x, last_mouse_pos_y = -1, -1
+          # for i in range(random.randint(3,5)):
+          #   poe_bot.last_action_time = 0 # reset action delay
+          #   poe_bot.refreshInstanceData()
+          #   path = createLineIterator(np.array((int(poe_bot.game_data.player.grid_pos.x), int(poe_bot.game_data.player.grid_pos.y))),np.array((grid_pos_to_go_x, grid_pos_to_go_y)))
+          #   self.distance_to_target = dist((grid_pos_to_go_y, grid_pos_to_go_x), [poe_bot.game_data.player.grid_pos.y,poe_bot.game_data.player.grid_pos.x])
+          #   print(f'distance_to_target on releasing mouse {self.distance_to_target}')
+          #   if self.distance_to_target < 20:
+          #     print(f'breaking cos distance_to_target < 20 {self.distance_to_target} ')
+          #     break
+          #   current_path = cropPath(path, step_size,step_size, current_pos_x=int(poe_bot.game_data.player.grid_pos.x), current_pos_y=int(poe_bot.game_data.player.grid_pos.y), max_path_length=100, extra_points_count=self.extra_points_count)
+          #   if len(current_path) == 0:
+          #     print('len(current_path) == 0 in release_mouse_cycles, generating new path')
+          #     if self.distance_to_target < 30:
+          #       print(f'lineiterator cos distance_to_target {self.distance_to_target}')
+          #       path = createLineIterator(np.array((int(poe_bot.game_data.player.grid_pos.x), int(poe_bot.game_data.player.grid_pos.y))),np.array((grid_pos_to_go_x, grid_pos_to_go_y)))
+          #     else:
+          #       print(f'astar cos distance_to_target {self.distance_to_target}')
+          #       path = poe_bot.pather.generatePath((int(poe_bot.game_data.player.grid_pos.y), int(poe_bot.game_data.player.grid_pos.x)), (grid_pos_to_go_y, grid_pos_to_go_x) )
+          #     # reset timer
+          #     poe_bot.last_action_time = 0 # reset action delay
+          #     continue
             
-            pos_to_click = poe_bot.getPositionOfThePointOnTheScreen(current_path[-1][0], current_path[-1][1])
-            pos_x,pos_y = poe_bot.convertPosXY(int(pos_to_click[0]), int(pos_to_click[1]))
-            if pos_x == last_mouse_pos_x and pos_y == last_mouse_pos_y:
-              print(f'nothing changed seems like release here is useless')
-              break
-            last_mouse_pos_x, last_mouse_pos_y = pos_x,pos_y
-            poe_bot.bot_controls.mouse.setPosSmooth(pos_x,pos_y, wait_till_executed=False)
-            print(f'setting cursor on releasing mouse {pos_x,pos_y}')
-            time.sleep(random.randint(7,14)/100)
-          poe_bot.last_action_time = 0 # reset action delay
-          poe_bot.refreshInstanceData()
-          current_path = cropPath(path, step_size,step_size, current_pos_x=int(poe_bot.game_data.player.grid_pos.x), current_pos_y=int(poe_bot.game_data.player.grid_pos.y), max_path_length=100, extra_points_count=self.extra_points_count)
-          self.distance_to_target = dist((grid_pos_to_go_y, grid_pos_to_go_x), [poe_bot.game_data.player.grid_pos.y ,poe_bot.game_data.player.grid_pos.x])
-          if len(current_path) == 0 and self.distance_to_target > 0:
-            print('len(current_path) == 0 in release_mouse_on_end, generating new path')
-            if self.distance_to_target < 30:
-              print(f'lineiterator cos distance_to_target {self.distance_to_target}')
-              path = createLineIterator(np.array((int(poe_bot.game_data.player.grid_pos.x), int(poe_bot.game_data.player.grid_pos.y))),np.array((grid_pos_to_go_x, grid_pos_to_go_y)))
-            else:
-              print(f'astar cos distance_to_target {self.distance_to_target}')
-              path = poe_bot.pather.generatePath((int(poe_bot.game_data.player.grid_pos.y), int(poe_bot.game_data.player.grid_pos.x)), (grid_pos_to_go_y, grid_pos_to_go_x) )
-            # reset timer
-            poe_bot.last_action_time = 0 # reset action delay
-            continue
+          #   pos_to_click = poe_bot.getPositionOfThePointOnTheScreen(current_path[-1][0], current_path[-1][1])
+          #   pos_x,pos_y = poe_bot.convertPosXY(int(pos_to_click[0]), int(pos_to_click[1]))
+          #   if pos_x == last_mouse_pos_x and pos_y == last_mouse_pos_y:
+          #     print(f'nothing changed seems like release here is useless')
+          #     break
+          #   last_mouse_pos_x, last_mouse_pos_y = pos_x,pos_y
+          #   poe_bot.bot_controls.mouse.setPosSmooth(pos_x,pos_y, wait_till_executed=False)
+          #   print(f'setting cursor on releasing mouse {pos_x,pos_y}')
+          #   time.sleep(random.randint(7,14)/100)
+          # poe_bot.last_action_time = 0 # reset action delay
+          # poe_bot.refreshInstanceData()
+          # current_path = cropPath(path, step_size,step_size, current_pos_x=int(poe_bot.game_data.player.grid_pos.x), current_pos_y=int(poe_bot.game_data.player.grid_pos.y), max_path_length=100, extra_points_count=self.extra_points_count)
+          # self.distance_to_target = dist((grid_pos_to_go_y, grid_pos_to_go_x), [poe_bot.game_data.player.grid_pos.y ,poe_bot.game_data.player.grid_pos.x])
+          # if len(current_path) == 0 and self.distance_to_target > 0:
+          #   print('len(current_path) == 0 in release_mouse_on_end, generating new path')
+          #   if self.distance_to_target < 30:
+          #     print(f'lineiterator cos distance_to_target {self.distance_to_target}')
+          #     path = createLineIterator(np.array((int(poe_bot.game_data.player.grid_pos.x), int(poe_bot.game_data.player.grid_pos.y))),np.array((grid_pos_to_go_x, grid_pos_to_go_y)))
+          #   else:
+          #     print(f'astar cos distance_to_target {self.distance_to_target}')
+          #     path = poe_bot.pather.generatePath((int(poe_bot.game_data.player.grid_pos.y), int(poe_bot.game_data.player.grid_pos.x)), (grid_pos_to_go_y, grid_pos_to_go_x) )
+          #   # reset timer
+          #   poe_bot.last_action_time = 0 # reset action delay
+          #   continue
          
-          self.move(grid_pos_x = grid_pos_to_go_x, grid_pos_y = grid_pos_to_go_y)
-          time.sleep(random.randint(3,6)/100)
-          poe_bot.bot_controls.mouse.release()
-          time.sleep(0.01)
-          print(f'realeased mouse')
+          # self.move(grid_pos_x = grid_pos_to_go_x, grid_pos_y = grid_pos_to_go_y)
+          # time.sleep(random.randint(3,6)/100)
+          # poe_bot.bot_controls.mouse.release()
+          # time.sleep(0.01)
+          # print(f'realeased mouse')
         break
 
       mover_move_time = time.time() - start_time
@@ -435,8 +436,8 @@ class Mover:
           previous_distance = self.distance_to_target
         if self.poe_bot.debug: print(f'repeating_distances_counter {repeating_distances_counter}')
         if repeating_distances_counter == 4 or repeating_distances_counter == 7:
-          print('releasing mouse, cos maybe its stuck')
-          bot_controls.mouse_pressed['left'] = False
+          print('[Mover.goToPoint] stopping, cos maybe its stuck')
+          self.stopMoving()
 
         if repeating_distances_counter >= 13:
           if repeating_distances_counter % 10 == 0:
@@ -633,6 +634,10 @@ class Mover:
       bot_controls.mouse.setPosSmooth(pos_x,pos_y, wait_till_executed=False)
     return (pos_x,pos_y)
   def moveWASD(self, grid_pos_x = None, grid_pos_y = None, screen_pos_x = None, screen_pos_y = None):
+    better_angle_additional_weights = 0.25
+
+    current_point = self.poe_bot.game_data.player.grid_pos.toList()
+    
     print(f'[Mover.moveWASD] {grid_pos_x, grid_pos_y}, {screen_pos_x, screen_pos_y}')
     if grid_pos_x != None and grid_pos_y != None:
       print(f'grid pos pp {self.poe_bot.game_data.player.grid_pos.toList()}')
@@ -641,25 +646,69 @@ class Mover:
         self.poe_bot.game_data.player.grid_pos.toList(),
         [grid_pos_x, grid_pos_y],
       )
-    elif screen_pos_x != None and screen_pos_y != None:
-      print(f'screen pos cp {self.poe_bot.game_window.center_point}')
-      angle = angleOfLine(
-        self.poe_bot.game_window.center_point,
-        [screen_pos_x, screen_pos_y],
-      ) - 45
-      if angle < 0:
-        angle += 360
+    else:
+      raise Exception('screen pos move for wasd is not supported atm')
+    # elif screen_pos_x != None and screen_pos_y != None:
+    #   print(f'screen pos cp {self.poe_bot.game_window.center_point}')
+    #   angle = angleOfLine(
+    #     self.poe_bot.game_window.center_point,
+    #     [screen_pos_x, screen_pos_y],
+    #   ) - 45
+    #   if angle < 0:
+    #     angle += 360
 
     # we have an angle to move
-
     print(f'[Mover.moveWASD] exact angle to move {angle}')
+
+    
+
     angle_mult = angle // 45
+
+    angles = []
+    angle_weights = [1,1]
+    angles.append(int(angle_mult*45))
+    angles.append(int((angle_mult+1)*45))
+
     angle_leftover = angle % 45
-
     if angle_leftover > 22.5:
-      angle_mult += 1
+      angle_weights[1] += better_angle_additional_weights
+    else:
+      angle_weights[0] += better_angle_additional_weights
 
-    nearest_angle = int(angle_mult * 45)
+
+
+    distance = dist(current_point, (grid_pos_x, grid_pos_y))
+
+    furthest_point = current_point
+    furthest_point_distance = 0
+    furthest_point_val = 0
+    furthest_angle = angles[0]
+
+    for angle_index in range(len(angles)):
+      angle = angles[angle_index]
+      angle_weight = angle_weights[angle_index]
+      point = pointOnCircleByAngleAndLength(angle, distance, current_point)
+      line_points_vals = createLineIteratorWithValues(current_point, point, self.poe_bot.game_data.terrain.passable)
+      length = 0
+      last_point = line_points_vals[0]
+      for point in line_points_vals:
+        if point[2] != 1:
+          break
+        last_point = point 
+        length += 1
+      dist_to_last_point = dist(current_point, (last_point[0], last_point[1]))
+      last_point_val = dist_to_last_point * angle_weight
+      # if furthest_point_distance < dist_to_last_point:
+      
+      if furthest_point_val < last_point_val:
+        furthest_point_val = last_point_val
+        furthest_point_distance = dist_to_last_point
+        furthest_point = [int(last_point[0]), int(last_point[1])]
+        furthest_angle = angle
+      print(f"angle {angle}, {angle_weight}, {length}, {last_point}, {dist_to_last_point}, {last_point_val}")
+
+
+    nearest_angle = furthest_angle
     if nearest_angle == 360:
       nearest_angle = 0
     print(f'[Mover.moveWASD] gonna move by angle {nearest_angle}')
