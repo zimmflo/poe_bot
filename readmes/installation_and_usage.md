@@ -3,7 +3,8 @@
 - install python 3.8.10, you can download it from https://www.python.org/downloads/release/python-3810/ , dont forget to check on "add to PATH" during python installation
 - install .NET SDK 8.0 x64 https://dotnet.microsoft.com/en-us/download/dotnet/8.0
 - install VC 2015 Redistributable https://www.microsoft.com/en-us/download/confirmation.aspx?id=48145
-- after you did install python, run utils/2_install_python_libs.bat, itll install all the python dependencies
+- after you did install python, run pip install -r requirements.txt inside 0_guest folder 
+<!-- - after you did install python, run utils/2_install_python_libs.bat, itll install all the python dependencies -->
 - poe 1 exileapi can be downloaded at https://www.ownedcore.com/forums/mmo/path-of-exile/poe-bots-programs/1000594-exileapi-3-23-beyond-plugin-framework.html
 - poe 2 exilecore2 at https://www.ownedcore.com/forums/path-of-exile-2/path-of-exile-2-buy-sell-trade/1057794-exilecore2-exileapi-successor-beta-access.html
 
@@ -16,12 +17,17 @@
 ## How to install:
 - install python 3.8.10, you can download it from https://www.python.org/downloads/release/python-3810/ , "add to PATH" during python installation
 - install VC 2015 Redistributable https://www.microsoft.com/en-us/download/confirmation.aspx?id=48145
-- after you did install python, run utils/2_install_python_libs.bat, itll install all the python dependencies
+- after you did install python, run pip install -r requirements.txt inside 1_host folder 
+<!-- - after you did install python, run utils/2_install_python_libs.bat, itll install all the python dependencies -->
 
 ## Important:
 - be sure to disable firewall and disable turning off the monitor, if not sure how to do that, run utils/0_preset.bat
 
 # Usage
-- on guest: run poe, run hud with plugin, run 0_guest/start.bat
-- on host: run corresponding .bat file
+- run start.bat from 0_guest on your virtual machine
+- run ExileApi with plugin from hud_dpb/ExileApi/Core/Plugins/ShareData on your virtual machine
+- run bat_atlas_rush_pconc.bat on your host machine
+- works
+
+usage sample raw: https://www.youtube.com/watch?v=4HEG2ryBzrQ
 
