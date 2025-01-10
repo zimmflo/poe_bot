@@ -129,6 +129,21 @@ public class ResurrectUi_c{
     public int v; // visible
     public List<int> sz { get; set; } // label screen zone x1 x2 y1 y2
 }
+
+public class RitualUi_c{
+    public string t { get; set; } // tribute
+    public string p { get; set; } // progress
+    public int v { get; set; } // is_visible
+    public List<int> sz { get; set; } // label screen zone x1 x2 y1 y2
+    public string r_b { get; set; } // reroll button tooltip raw
+    public List<int> r_b_sz { get; set; } // reroll button screen zone
+    public string d_b { get; set; } // defer button text raw
+    public List<int> d_b_sz { get; set; } // defer button screen zone
+    public List<InventoryObjectCustom_c> i { get; set; } // items
+    
+
+}
+
 public class AllUi_c{
     public KirakMissionUI_c km;
     public PurchaseWindowHideout_c pwh;
@@ -181,10 +196,13 @@ public class MinimapIcon_c
 {
     public int i { get; set; } // id
     public string p { get; set; } // path
+    public string n { get; set; } // path
     public int v { get; set; } // is_hide
     public int h { get; set; } // is_visible
     
 }
+
+
 public class Entity_c{
     public List<int> ls { get; set; } // location on screen x,y
     public string p { get; set; } // path
@@ -247,6 +265,7 @@ public class GetDataObject
     public FlasksOnBar f { get; set; }  // flasks
     public SkillsOnBar_c s { get; set; }  // skills
     public List<int> mgp { get; set; } // mouse grid position ingamestate.data.serverdata mouse world pos
+    public int c_t; // controller type
 }
 public class InventoryObjectCustom_c
 {

@@ -324,18 +324,19 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
 
             // is_opened
             entity.o = 0;
-            // try {
-            //     entity.o = obj.IsOpened ? 1 : 0;
-            // }
-            // catch (Exception e)
-            // {
-            //     DebugWindow.LogMsg($"entity.IsOpened -> {e}");
-            // }
             
-            var triggerable_blockage = obj.GetComponent<TriggerableBlockage>();
-            if (triggerable_blockage != null){
-                entity.o = triggerable_blockage.IsOpened ? 1 : 0;
+            if (entity.p == "Metadata/Terrain/Leagues/Ritual/RitualRuneInteractable"){
+                var state_machine_component = obj.GetComponent<StateMachine>();
+                if (state_machine_component != null){
+                    entity.o = state_machine_component.States.Any(state => state.Name == "current_state" && state.Value == 2) ? 1 : 0;
+                }
+            } else {
+                var triggerable_blockage = obj.GetComponent<TriggerableBlockage>();
+                if (triggerable_blockage != null){
+                    entity.o = triggerable_blockage.IsOpened ? 1 : 0;
+                }
             }
+
 
 
             // is_targetable
@@ -436,6 +437,9 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
         } else if (request.Url.AbsolutePath =="/getMinimapIcons"){
             var response = getMinimapIcons();
             return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
+        } else if (request.Url.AbsolutePath =="/getRitualUi"){
+            var response = getRitualUi();
+            return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
         } else if (request.Url.AbsolutePath =="/getWorldMapUi"){
             var response = getWorldMapUi();
             return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
@@ -503,17 +507,41 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
         };
         return "dont understand";
     }
+
+
+    public List<string> TraverseElementsBFS(Element root)
+    {
+        var result = new List<string>();
+        if (root == null) return result;
+
+        var queue = new Queue<Element>();
+        queue.Enqueue(root);
+
+        while (queue.Count > 0)
+        {
+            var currentElement = queue.Dequeue();
+
+            // Add the current element's name to the result list
+            result.Add(currentElement.TextNoTags);
+
+            // Enqueue children
+            foreach (var child in currentElement.Children)
+            {
+                queue.Enqueue(child);
+            }
+        }
+
+        return result;
+    }
+
+
     public InventoryObjectCustom_c getHoveredItemInfo(){
         InventoryObjectCustom_c hovered_item = new InventoryObjectCustom_c();
         var hovered_item_el = GameController.IngameState.UIHoverElement;
         var tooltip_texts_el = hovered_item_el.Tooltip;
         if (tooltip_texts_el != null){
-            hovered_item.tt = new List<string>(); 
-            foreach (var text_line in tooltip_texts_el.Children[0].Children[1].Children){
-                if (text_line.TextNoTags != null){
-                    hovered_item.tt.Add(text_line.TextNoTags);
-                }
-            }
+            var items = TraverseElementsBFS(tooltip_texts_el.Children[0].Children[1]);
+            hovered_item.tt = items.Where(item => item != null).ToList();
         }
         return hovered_item;
     }
@@ -719,6 +747,70 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
 
         return el;
     }
+
+    public RitualUi_c getRitualUi(){
+        RitualUi_c ritual_ui = new RitualUi_c();
+        ritual_ui.v = 0;
+
+        var tribute_element = GameController.IngameState.IngameUi.GetChildFromIndices([11, 1]);
+        if (tribute_element != null && tribute_element.IsVisible == true){
+            ritual_ui.t = tribute_element.TextNoTags;
+        }
+        var ritual_progress_element = GameController.IngameState.IngameUi.GetChildFromIndices([111, 9, 12, 0, 0, 0]);
+        if (ritual_progress_element != null && ritual_progress_element.IsVisible == true){
+            ritual_ui.p = ritual_progress_element.TextNoTags;
+        }
+
+        var ritual_ui_element = GameController.IngameState.IngameUi.RitualWindow;
+        if (ritual_ui_element.IsVisible == true){
+            ritual_ui.v = 1;
+            var ritual_ui_rect = ritual_ui_element.GetClientRect();
+            ritual_ui.sz = new List<int> {
+                (int)ritual_ui_rect.X, 
+                (int)(ritual_ui_rect.X + ritual_ui_rect.Width), 
+                (int)ritual_ui_rect.Y, 
+                (int)(ritual_ui_rect.Y + ritual_ui_rect.Height), 
+            };
+
+            
+            var defer_button_element = ritual_ui_element.GetChildAtIndex(12);
+            ritual_ui.d_b = defer_button_element.GetChildAtIndex(0).TextNoTags;
+            var defer_button_rect = defer_button_element.GetClientRect();
+            ritual_ui.d_b_sz = new List<int> {
+                (int)defer_button_rect.X, 
+                (int)(defer_button_rect.X + defer_button_rect.Width), 
+                (int)defer_button_rect.Y, 
+                (int)(defer_button_rect.Y + defer_button_rect.Height), 
+            };
+
+
+            var reroll_button_element = ritual_ui_element.GetChildFromIndices([11, 0]);
+            var reroll_button_rect = reroll_button_element.GetClientRect();
+            ritual_ui.r_b_sz = new List<int> {
+                (int)reroll_button_rect.X, 
+                (int)(reroll_button_rect.X + reroll_button_rect.Width), 
+                (int)reroll_button_rect.Y, 
+                (int)(reroll_button_rect.Y + reroll_button_rect.Height), 
+            };
+            ritual_ui.r_b = reroll_button_element.Tooltip.TextNoTags;
+            ritual_ui.i = new List<InventoryObjectCustom_c>();
+            foreach (var normal_inventory_item in ritual_ui_element.Items){
+                var item = convertItem(normal_inventory_item.Entity);
+                var item_rect = normal_inventory_item.GetClientRect();
+                item.s = new List<int> {
+                    (int)item_rect.X, 
+                    (int)(item_rect.X + item_rect.Width), 
+                    (int)item_rect.Y, 
+                    (int)(item_rect.Y + item_rect.Height), 
+                };
+                ritual_ui.i.Add(item);
+            }
+        }
+
+
+        return ritual_ui;
+    }
+
     public List<MinimapIcon_c> getMinimapIcons(){
         List<MinimapIcon_c> awake_entities = new List<MinimapIcon_c>();
         foreach (var obj in GameController.EntityListWrapper.Entities)
@@ -730,16 +822,14 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
             MinimapIcon_c entity = new MinimapIcon_c();
             // Minimap icon
             var minimap_object_component = obj.GetComponent<MinimapIcon>();
-            if (minimap_object_component != null){
-                entity.h = minimap_object_component.IsHide ? 1 : 0;
-                entity.v = minimap_object_component.IsVisible ? 1 : 0;
-            } else {
+            if (minimap_object_component == null){
                 continue;
             }
+            entity.h = minimap_object_component.IsHide ? 1 : 0;
+            entity.v = minimap_object_component.IsVisible ? 1 : 0;
+            entity.n = minimap_object_component.Name;
             entity.i = (int)obj.Id;
             entity.p = obj.Path;
-
-
             awake_entities.Add(entity);
         }
         return awake_entities;
@@ -1691,6 +1781,7 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
 
         if (detailed == true) {
             response.terrain_string = generateMinimap().ToString();
+            response.c_t = GameController.Game.InputType.GetHashCode();
         }
 
 
