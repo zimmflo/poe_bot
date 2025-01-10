@@ -167,6 +167,7 @@ class Ui:
     self.ultimatum_initiator_ui = UltimatumInitiatorUi(poe_bot=poe_bot)
     self.incursion_ui = IncursionUi(poe_bot=poe_bot)
     self.escape_control_panel = EscapeControlPanel(poe_bot=poe_bot)
+    self.ritual_ui = RitualUi(poe_bot=poe_bot)
   def closeAll(self):
     bot_controls = self.poe_bot.bot_controls
     self.stash.is_opened = False
@@ -1302,16 +1303,18 @@ class MapDevice_Poe2(MapDevice):
       poe_bot.raiseLongSleepException('checking if activate button is active, but dropdown is not visible')
     for corner in self.activate_button_pos.getCorners():
       if poe_bot.game_window.isInRoi(*corner) == False:
-        dropdown_zone = self.place_map_window_activate_button_screen_zone
+        dropdown_zone = self.place_map_window_screenzone
         pos_x = int((dropdown_zone.x1 + dropdown_zone.x2)/2)
         pos_y = dropdown_zone.y1 + 10
-        pos_x, pos_y = poe_bot.game_window.convertPosXY(pos_x, pos_y)
-        center_x, center_y = poe_bot.game_window.convertPosXY(*poe_bot.game_window.center_point)
+        pos_x, pos_y = poe_bot.game_window.convertPosXY(pos_x, pos_y, safe=False)
+        center_x, center_y = poe_bot.game_window.convertPosXY(*poe_bot.game_window.center_point, safe=False)
+        center_y = center_y - 100
         poe_bot.bot_controls.mouse.drag([pos_x, pos_y], [pos_x, center_y])
         time.sleep(random.uniform(0.35,0.75))
-        poe_bot.ui.map_device.update()
+        self.update()
         if any(list(map(lambda c: poe_bot.game_window.isInRoi(*c) == False, self.activate_button_pos.getCorners()))):
           poe_bot.raiseLongSleepException(f'corner {corner} is outside of roi')
+        break
     # return super().checkIfActivateButtonIsActive(hsv_range = [0, 0, 0, 255, 30, 180])
     x1 = self.activate_button_pos.x1 +5
     x2 = self.activate_button_pos.x2 -5
@@ -1419,7 +1422,6 @@ class MapDevice_Poe2(MapDevice):
     if self.is_opened is not True:
       raise Exception("map_device.opened is not True")
     return True
-
 class Inventory:
   '''
   - responsible for all the interactions with inventory
@@ -1505,7 +1507,43 @@ class Inventory:
     time.sleep(random.randint(20,40)/100)
     bot_controls.mouse.click()
     time.sleep(random.randint(20,40)/100)
+class RitualUi(PoeBotComponent):
+  def __init__(self, poe_bot):
+    super().__init__(poe_bot)
+    self.reset()
+  def reset(self):
+    self.raw:dict = {}
+    self.tribute = 0
+    self.progress_current = 0
+    self.progress_total = 0
+    self.visible = False
+    self.screen_zone:Posx1x2y1y2 = None
+    self.reroll_cost = 1000
+    self.reroll_button:UiElement = None
+    self.defer_button_text = "defer item"
+    self.defer_button:UiElement = None
+    self.items = []
+  def update(self, data:dict = None):
+    if data == None:
+      data = self.poe_bot.backend.getRitualUi()
+    self.reset()
+    self.raw = data
+    if data["t"] != None:
+      self.tribute = int(data["t"])
+    if data["p"] != None:
+      self.progress_current = int(data["p"].split("/")[0])
+      self.progress_total = int(data["p"].split("/")[1])
+    self.visible = bool(data["v"])
+    if self.visible:
+      self.screen_zone = Posx1x2y1y2(*data["sz"])
+      self.reroll_cost = int(data["r_b"].split("Cost: ")[1].split(" ")[0].replace(",", ""))
+      self.reroll_button = UiElement(self.poe_bot, Posx1x2y1y2(*data["r_b_sz"]))
 
+      self.defer_button_text = data["d_b"]
+      self.defer_button = UiElement(self.poe_bot, Posx1x2y1y2(*data["d_b_sz"]))
+
+      self.items = list(map(lambda i_raw: Item(poe_bot=self.poe_bot, item_raw=i_raw),data["i"]))
+    
 x_offset = 12
 y_offset = 90
 def assignStashItemPositions(item):

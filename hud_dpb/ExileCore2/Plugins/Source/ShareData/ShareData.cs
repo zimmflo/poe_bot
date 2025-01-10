@@ -521,10 +521,19 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
         {
             var currentElement = queue.Dequeue();
 
-            // Add the current element's name to the result list
-            result.Add(currentElement.TextNoTags);
+            // Add the current element's text to the result list
+            if (currentElement.TextNoTags != null)
+            {
+                result.Add(currentElement.TextNoTags);
+            }
 
-            // Enqueue children
+            // Add the current element's tooltip text (if available)
+            if (currentElement.Tooltip != null && currentElement.Tooltip.TextNoTags != null)
+            {
+                result.Add($"Tooltip: {currentElement.Tooltip.TextNoTags}");
+            }
+
+            // Enqueue children for further traversal
             foreach (var child in currentElement.Children)
             {
                 queue.Enqueue(child);
@@ -534,17 +543,22 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
         return result;
     }
 
-
-    public InventoryObjectCustom_c getHoveredItemInfo(){
+    public InventoryObjectCustom_c getHoveredItemInfo()
+    {
         InventoryObjectCustom_c hovered_item = new InventoryObjectCustom_c();
         var hovered_item_el = GameController.IngameState.UIHoverElement;
         var tooltip_texts_el = hovered_item_el.Tooltip;
-        if (tooltip_texts_el != null){
-            var items = TraverseElementsBFS(tooltip_texts_el.Children[0].Children[1]);
+
+        if (tooltip_texts_el != null)
+        {
+            // Traverse the entire tooltip UI tree
+            var items = TraverseElementsBFS(tooltip_texts_el);
             hovered_item.tt = items.Where(item => item != null).ToList();
         }
+
         return hovered_item;
     }
+
 
     public GetOpenedStashInfoObject getStashInfo(){
         GetOpenedStashInfoObject response = new GetOpenedStashInfoObject();

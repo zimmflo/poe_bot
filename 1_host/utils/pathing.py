@@ -88,7 +88,7 @@ class Pather:
         # print(f'[pather] point {point} {point_index} is in radius')
         reachable = self.poe_bot.game_data.terrain.checkIfPointIsInLineOfSight(grid_pos_y=point[0], grid_pos_x=point[1])
         if reachable != False:
-          # print(f'[pather] point {point} {point_index} is reachable')
+          print(f'[pather.cropPath] point {point} {point_index} is reachable in {len(path)}')
           path_part = path[point_index:point_index+1+extra_points_count]
           # print(f'[pather] path part {path_part}')
           return path_part

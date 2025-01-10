@@ -716,9 +716,6 @@ class MovementSkill_new(SkillWithDelay):
         return False
     else:
       return super().use(pos_x, pos_y, updated_entity, wait_for_execution, force)
-
-
-
 class BlessingSkill(SkillWithDelay):
   def __init__(self, poe_bot: PoeBot, skill_index: int, skill_name='tipo chtobi potom uzat skill po ego internal name', display_name="SkillWithDelay", min_delay=4, delay_random=0.1, min_mana_to_use=0) -> None:
     super().__init__(poe_bot, skill_index, skill_name, display_name, min_delay, delay_random, min_mana_to_use)
@@ -902,7 +899,7 @@ class Build:
   def staticDefence(self):
     poe_bot = self.poe_bot
     self.auto_flasks.useFlasks()
-    mover = self.mover
+    mover = self.poe_bot.mover
     detection_range = 30
     danger_zones = list(filter(lambda e: e.distance_to_player < detection_range and any(list(map(lambda key: key in e.path, DANGER_ZONE_KEYS))), poe_bot.game_data.entities.all_entities ))
     if len(danger_zones) != 0:
@@ -1093,6 +1090,74 @@ class Build:
       poe_bot.bot_controls.keyboard.tap('DIK_X')
       time.sleep(random.randint(10,20)/10)
     poe_bot.combat_module.aura_manager.activateAurasIfNeeded()
+
+
+class EmptyBuild(Build):
+  def __init__(self, poe_bot):
+    super().__init__(poe_bot)
+  def usualRoutine(self, mover:Mover = None):
+    return False
+  def prepareToFight(self, entity: Entity):
+    return True
+  def killUsual(self, entity:Entity, is_strong = False, max_kill_time_sec = random.randint(200,300)/10, *args, **kwargs):
+    print(f'#build.killUsual {entity}')
+    poe_bot = self.poe_bot
+    mover = self.mover
+    entity_to_kill_id = entity.id
+    keep_distance = 15 # if our distance is smth like this, kite
+    self.auto_flasks.useFlasks()
+    entity_to_kill = next((e for e in poe_bot.game_data.entities.attackable_entities if e.id == entity_to_kill_id), None)
+    if not entity_to_kill:
+      print('cannot find desired entity to kill')
+      return True
+    print(f'entity_to_kill {entity_to_kill}')
+    if entity_to_kill.life.health.current < 0:
+      print('entity is dead')
+      return True
+    distance_to_entity = dist( (entity_to_kill.grid_position.x, entity_to_kill.grid_position.y), (poe_bot.game_data.player.grid_pos.x, poe_bot.game_data.player.grid_pos.y) ) 
+    print(f'distance_to_entity {distance_to_entity} in killUsual')
+    if entity_to_kill.isInRoi() == False or entity_to_kill.isInLineOfSight() == False:
+    # if distance_to_entity > min_distance:
+      print('getting closer in killUsual ')
+      return False
+    start_time = time.time()
+    poe_bot.last_action_time = 0
+    kite_distance = random.randint(35,45)
+    res = True
+    reversed_run = random.choice([True, False])
+    while True:
+      poe_bot.refreshInstanceData()
+      self.auto_flasks.useFlasks()
+      entity_to_kill = next((e for e in poe_bot.game_data.entities.attackable_entities if e.id == entity_to_kill_id), None)
+      if not entity_to_kill:
+        print('cannot find desired entity to kill')
+        break
+      print(f'entity_to_kill {entity_to_kill}')
+      if entity_to_kill.life.health.current < 1:
+        print('entity is dead')
+        break
+      distance_to_entity = dist( (entity_to_kill.grid_position.x, entity_to_kill.grid_position.y), (poe_bot.game_data.player.grid_pos.x, poe_bot.game_data.player.grid_pos.y) ) 
+      print(f'distance_to_entity {distance_to_entity} in killUsual')
+      if entity_to_kill.isInRoi() == False or entity_to_kill.isInLineOfSight() == False:
+        print('getting closer in killUsual ')
+        break
+      current_time = time.time()
+      print('kiting')
+      if distance_to_entity > keep_distance:
+        print('around')
+        point = self.poe_bot.game_data.terrain.pointToRunAround(entity_to_kill.grid_position.x, entity_to_kill.grid_position.y, kite_distance+random.randint(-1,1), check_if_passable=True, reversed=reversed_run)
+        mover.move(grid_pos_x = point[0], grid_pos_y = point[1])
+      else:
+        print('away')
+        p0 = (entity_to_kill.grid_position.x, entity_to_kill.grid_position.y)
+        p1 = (poe_bot.game_data.player.grid_pos.x, poe_bot.game_data.player.grid_pos.y)
+        go_back_point = self.poe_bot.pather.findBackwardsPoint(p1, p0)
+        poe_bot.mover.move(*go_back_point)
+      if current_time  > start_time + max_kill_time_sec:
+        print('exceed time')
+        break
+    return res
+
 class ColdDotElementalist(Build):
   '''
   mapper version of cold dot elementalist

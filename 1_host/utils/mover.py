@@ -15,6 +15,8 @@ import matplotlib.pyplot as plt
 from .utils import alwaysFalseFunction, createLineIterator, getAngle, angleOfLine, pointOnCircleByAngleAndLength, createLineIteratorWithValues
 from .constants import DOOR_KEYWORDS
 
+import traceback
+
 # doors have component triggerable blockade
 
 class Mover:
@@ -339,6 +341,7 @@ class Mover:
     
     path = []
     path = poe_bot.pather.generatePath((int(poe_bot.game_data.player.grid_pos.y), int(poe_bot.game_data.player.grid_pos.x)), (grid_pos_to_go_y, grid_pos_to_go_x) )
+    print(f"[Mover.goToPoint] len(path): {len(path)}")
     # reset timer
     poe_bot.last_action_time = 0 # reset action delay
     while arrived is False:
@@ -471,6 +474,7 @@ class Mover:
           self.move(grid_pos_x = point[0], grid_pos_y = point[1])
           continue
       current_path = cropPath(path, int(step_size*1.7),step_size, current_pos_x=int(poe_bot.game_data.player.grid_pos.x), current_pos_y=int(poe_bot.game_data.player.grid_pos.y), max_path_length=int(step_size*1.5), extra_points_count=self.extra_points_count)
+      # print(f"[Mover.goToPoint] len(path): {len(path)}")
       # print(f'len(current_path) {len(current_path)}')
       if len(current_path) == 0:
         print('[Mover] len(current_path) == 0, generating new path')
@@ -478,7 +482,12 @@ class Mover:
         # reset timer
         poe_bot.last_action_time = 0 # reset action delay
         continue
-
+      # else:
+      #   try:
+      #     p:np.ndarray = []
+      #     print(f"[Mover.goToPoint] len(path): {len(path)} current index {p.where}")
+      #   except Exception as e:
+      #     traceback.print_exc()
       self.grid_pos_to_step_x, self.grid_pos_to_step_y = current_path[-1][1], current_path[-1][0]
       self.current_cropped_path = current_path
       self.nearest_passable_point = [self.current_cropped_path[0][1], self.current_cropped_path[0][0]] # [x,y]
@@ -638,9 +647,9 @@ class Mover:
 
     current_point = self.poe_bot.game_data.player.grid_pos.toList()
     
-    print(f'[Mover.moveWASD] {grid_pos_x, grid_pos_y}, {screen_pos_x, screen_pos_y}')
+    # print(f'[Mover.moveWASD] {grid_pos_x, grid_pos_y}, {screen_pos_x, screen_pos_y}')
     if grid_pos_x != None and grid_pos_y != None:
-      print(f'grid pos pp {self.poe_bot.game_data.player.grid_pos.toList()}')
+      # print(f'grid pos pp {self.poe_bot.game_data.player.grid_pos.toList()}')
 
       angle = angleOfLine(
         self.poe_bot.game_data.player.grid_pos.toList(),
@@ -658,7 +667,6 @@ class Mover:
     #     angle += 360
 
     # we have an angle to move
-    print(f'[Mover.moveWASD] exact angle to move {angle}')
 
     
 
@@ -705,7 +713,7 @@ class Mover:
         furthest_point_distance = dist_to_last_point
         furthest_point = [int(last_point[0]), int(last_point[1])]
         furthest_angle = angle
-      print(f"angle {angle}, {angle_weight}, {length}, {last_point}, {dist_to_last_point}, {last_point_val}")
+      # print(f"angle {angle}, {angle_weight}, {length}, {last_point}, {dist_to_last_point}, {last_point_val}")
 
 
     nearest_angle = furthest_angle

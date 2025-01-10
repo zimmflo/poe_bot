@@ -15,10 +15,10 @@ from utils.gamehelper import Poe2Bot
 # In[2]:
 
 
+from typing import List
 
 
-
-# In[2]:
+# In[3]:
 
 
 notebook_dev = False
@@ -27,7 +27,7 @@ poe_bot_class = Poe2Bot
 poe_bot: poe_bot_class
 
 
-# In[3]:
+# In[4]:
 
 
 default_config = {
@@ -64,7 +64,7 @@ for key in default_config.keys():
 print(f'config to run {config}')
 
 
-# In[4]:
+# In[5]:
 
 
 REMOTE_IP = config['REMOTE_IP'] # REMOTE_IP
@@ -77,7 +77,7 @@ force_reset_temp = config['force_reset_temp']
 print(f'running aqueduct using: REMOTE_IP: {REMOTE_IP} unique_id: {UNIQUE_ID} max_lvl: {MAX_LVL} chromatics_recipe: {CHROMATICS_RECIPE} force_reset_temp: {force_reset_temp}')
 
 
-# In[5]:
+# In[6]:
 
 
 poe_bot = Poe2Bot(unique_id = UNIQUE_ID, remote_ip = REMOTE_IP, password=password)
@@ -132,7 +132,7 @@ from utils.combat import InfernalistZoomancer
 # poe_bot.combat_module.build = InfernalistZoomancer(poe_bot=poe_bot)
 poe_bot.combat_module.build = PathfinderPoisonConc2(poe_bot=poe_bot)
 poe_bot.combat_module.build.auto_flasks.life_flask_recovers_es = True
-poe_bot.combat_module.build.auto_flasks.hp_thresh = 0.25
+poe_bot.combat_module.build.auto_flasks.hp_thresh = 0.70
 
 def activateSwitchesNearby():
   switch_nearby = next( (e for e in poe_bot.game_data.entities.all_entities if e.is_targetable and e.path == "Metadata/Terrain/Maps/Crypt/Objects/CryptSecretDoorSwitch" and e.distance_to_player < 30), None)
@@ -176,12 +176,37 @@ poe_bot.mover.default_continue_function = poe_bot.combat_module.build.usualRouti
 # In[13]:
 
 
-from utils.encounters import EssenceEncounter
+from utils.encounters import EssenceEncounter, BreachEncounter, RitualEncounter
 from utils.constants import ESSENCES_KEYWORD
 
+class MapArea:
+  boss_render_names:List[str] = []
+
+class MapBackwash(MapArea):
+  boss_render_names = ["Yaota, the Loathsome"]
+
+# settings
 rares_detection_radius = 999
+prefer_high_tier = True
+alch_map_if_possible = True
+
+maps_to_ignore = [
+  "MapCrypt_NoBoss", # activators
+  "MapAugury_NoBoss", # activators
+  "MapLostTowers"
+]
 
 
+# cache
+ritual_ignore_ids = []
+
+
+def isMapCompleted():
+  poe_bot.game_data.map_info.update()
+  if poe_bot.game_data.map_info.map_completed == True:
+    print(f'poe_bot.game_data.map_info.map_completed == True')
+    return True
+  return False
 
 def seekForEssences(search_loc = None):
   '''
@@ -189,6 +214,13 @@ def seekForEssences(search_loc = None):
   '''
   essences = list(filter(lambda e: e.is_targetable is True and ESSENCES_KEYWORD in e.path and poe_bot.game_data.terrain.checkIfPointPassable(e.grid_position.x, e.grid_position.y), poe_bot.game_data.entities.all_entities))
   return essences
+
+def seekForBreaches():
+  return next( (e for e in poe_bot.game_data.entities.all_entities if e.path == "Metadata/MiscellaneousObjects/Breach/BreachObject"), None)
+
+def seekForRituals():
+  return next( (e for e in poe_bot.game_data.entities.all_entities if e.path == "Metadata/Terrain/Leagues/Ritual/RitualRuneInteractable" and not e.id in ritual_ignore_ids), None)
+
 
 def runnerBreakFunction(*args, **kwargs):
 
@@ -224,6 +256,35 @@ def runnerBreakFunction(*args, **kwargs):
     poe_bot.loot_picker.collectLoot()
     return True
 
+  breach_entity = seekForBreaches()
+  if breach_entity:
+    BreachEncounter(poe_bot, breach_entity).doEncounter()
+    return True
+
+  ritual_entity = seekForRituals()
+  if ritual_entity:
+    poe_bot.mover.goToEntitysPoint(ritual_entity, min_distance=100)
+    poe_bot.game_data.minimap_icons.update()
+    corresponding_icon = next( (i for i in poe_bot.game_data.minimap_icons.icons if i.id == ritual_entity.id), None)
+    if not corresponding_icon:
+      poe_bot.mover.goToEntitysPoint(ritual_entity, min_distance=50)
+    poe_bot.game_data.minimap_icons.update()
+    corresponding_icon = next( (i for i in poe_bot.game_data.minimap_icons.icons if i.id == ritual_entity.id), None)
+    if not corresponding_icon:
+      print('ritual minimap icon is not in hud, ignoring')
+      ritual_ignore_ids.append(ritual_entity.id)
+      return True
+    if corresponding_icon.name == "RitualRuneFinished":
+      print('according to minimap icon data, ritual is finished')
+      ritual_ignore_ids.append(ritual_entity.id)
+      return True
+    RitualEncounter(poe_bot, ritual_entity).doEncounter()
+    # check if we did 3 of 3 or 4of4 rituals, if true, defer\whatever items
+    ritual_ignore_ids.append(ritual_entity.id)
+    return True
+
+    
+
   loot_collected = poe_bot.loot_picker.collectLoot()
   if loot_collected is True:
     return loot_collected
@@ -236,19 +297,6 @@ def runnerBreakFunction(*args, **kwargs):
 
 # raise 404
 poe_bot.refreshAll()
-
-
-# In[15]:
-
-
-prefer_high_tier = True
-alch_map_if_possible = True
-
-maps_to_ignore = [
-  "MapCrypt_NoBoss", # activators
-  "MapAugury_NoBoss", # activators
-  "MapLostTowers"
-]
 
 
 # In[16]:
@@ -323,10 +371,11 @@ if poe_bot.ui.map_device.place_map_window_opened == False:
 
 
 
-# In[18]:
+# In[ ]:
 
 
-for m in possible_to_run_maps:
+poe_bot.ui.map_device.update()
+for m in poe_bot.ui.map_device.avaliable_maps:
   print(m.raw)
 
 
@@ -354,33 +403,44 @@ if poe_bot.ui.map_device.place_map_window_opened != True:
 # poe_bot.bot_controls.mouse.setPos(pos_x, pos_y)
 
 
-# In[21]:
+# In[ ]:
 
 
-poe_bot.ui.inventory.update()
-maps_in_inventory = list(filter(lambda i: i.map_tier, poe_bot.ui.inventory.items))
-maps_in_inventory.sort(key=lambda i: i.map_tier, reverse=prefer_high_tier)
-map_to_run = maps_in_inventory[0]
-print(f'placing map {map_to_run.raw}')
+if len(poe_bot.ui.map_device.place_map_window_items) > 1:
+  poe_bot.raiseLongSleepException('placed more than 1 map already')
+elif len(poe_bot.ui.map_device.place_map_window_items) == 0:
+  poe_bot.ui.inventory.update()
+  maps_in_inventory = list(filter(lambda i: i.map_tier, poe_bot.ui.inventory.items))
+  maps_in_inventory.sort(key=lambda i: i.map_tier, reverse=prefer_high_tier)
+  map_to_run = maps_in_inventory[0]
+  print(f'placing map {map_to_run.raw}')
 
-if alch_map_if_possible == True:
-  ARTS_TO_PICK.append("Art/2DItems/Currency/CurrencyUpgradeToRare.dds")
-  for _i in range(1):
-    if map_to_run.rarity != "Normal":
-      break
-    alchemy_orbs = list(filter(lambda i: i.name == "Orb of Alchemy", poe_bot.ui.inventory.items))
-    if len(alchemy_orbs) == 0:
-      break
-    alchemy_orb = alchemy_orbs[0]
-    alchemy_orb.click(button="right")
-    time.sleep(random.uniform(0.4, 1.2))
-    map_to_run.click()
-    time.sleep(random.uniform(0.8, 1.2))
+  if alch_map_if_possible == True:
+    ARTS_TO_PICK.append("Art/2DItems/Currency/CurrencyUpgradeToRare.dds")
+    for _i in range(1):
+      if map_to_run.rarity != "Normal":
+        break
+      alchemy_orbs = list(filter(lambda i: i.name == "Orb of Alchemy", poe_bot.ui.inventory.items))
+      if len(alchemy_orbs) == 0:
+        break
+      alchemy_orb = alchemy_orbs[0]
+      alchemy_orb.click(button="right")
+      time.sleep(random.uniform(0.4, 1.2))
+      map_to_run.click()
+      time.sleep(random.uniform(0.8, 1.2))
 
-map_to_run.click(hold_ctrl=True)
+  map_to_run.click(hold_ctrl=True)
+
+
+# In[ ]:
+
+
 poe_bot.ui.map_device.update()
 #TODO sometimes activate button is outside roi
 poe_bot.ui.map_device.checkIfActivateButtonIsActive()
+
+
+# In[23]:
 
 
 poe_bot.ui.map_device.activate()
@@ -389,7 +449,7 @@ time.sleep(random.uniform(0.8, 1.6))
 poe_bot.helper_functions.waitForNewPortals()
 
 
-# In[22]:
+# In[ ]:
 
 
 poe_bot.refreshInstanceData()
@@ -401,13 +461,13 @@ while area_changed != True:
   area_changed = poe_bot.game_data.area_raw_name != original_area_raw_name
 
 
-# In[23]:
+# In[25]:
 
 
 # raise 404
 
 
-# In[24]:
+# In[ ]:
 
 
 from utils.pathing import TSP
@@ -457,9 +517,7 @@ while map_complete is False:
 
 
     # if we arrived to discovery point and nothing happened
-    poe_bot.game_data.map_info.update()
-    if poe_bot.game_data.map_info.map_completed == True:
-      print(f'poe_bot.game_data.map_info.map_completed == True')
+    if isMapCompleted() == True:
       map_complete = True
       break
     if result is None:
@@ -490,7 +548,7 @@ while map_complete is False:
   # if possible_transition to explore, go to it, run discovery again
 
 
-# In[25]:
+# In[ ]:
 
 
 # open portal and enter it
@@ -505,19 +563,73 @@ def openPortal():
   poe_bot.bot_controls.mouse.click()
   time.sleep(random.randint(30,60)/100)
 
-while True:
+
+map_finish_time = time.time() 
+time_now = time.time()
+rev = bool(random.randint(0,1))
+while time_now < map_finish_time + 1 :
   poe_bot.refreshInstanceData()
-  loot_collected = poe_bot.loot_picker.collectLoot()
-  if loot_collected == True:
-    continue
-  killed_smth = poe_bot.combat_module.clearAreaAroundPoint(poe_bot.game_data.player.grid_pos.toList())
-  
-  if poe_bot.game_data.invites_panel_visible == False and killed_smth == False:
-    openPortal()
-    poe_bot.helper_functions.waitForPortalNearby()
-    poe_bot.helper_functions.getToPortal(check_for_map_device=False, refresh_area=False)
+  killed_someone = poe_bot.combat_module.clearLocationAroundPoint({"X":poe_bot.game_data.player.grid_pos.x, "Y":poe_bot.game_data.player.grid_pos.y},detection_radius=50)
+  res = poe_bot.loot_picker.collectLoot()
+  if killed_someone is False and res is False:
+    point = poe_bot.game_data.terrain.pointToRunAround(
+      point_to_run_around_x=poe_bot.game_data.player.grid_pos.x,
+      point_to_run_around_y=poe_bot.game_data.player.grid_pos.y,
+      distance_to_point=15,
+      reversed=rev
+    )
+    poe_bot.mover.move(grid_pos_x = point[0], grid_pos_y = point[1])
     poe_bot.refreshInstanceData()
-    killed_smth = poe_bot.combat_module.clearAreaAroundPoint(poe_bot.game_data.player.grid_pos.toList())
+  time_now = time.time()
+
+i = 0
+random_click_iter = 0
+can_click_portal_after = time.time()
+while True:
+  while True:
+    poe_bot.refreshInstanceData()
+    res = poe_bot.loot_picker.collectLoot()
+    if res is False:
+      break
+  
+  if poe_bot.game_data.invites_panel_visible != False:
+    print(f'[onmapfinishfunction] already loading')
+  else:
+    i+= 1
+    random_click_iter += 1
+    if random_click_iter > 15:
+      print('[Mapper] cannot get to portal, clicking random point around the player')
+      poe_bot.ui.closeAll()
+      # point = poe_bot.game_data.terrain.pointToRunAround(poe_bot.game_data.player.grid_pos.x, poe_bot.game_data.player.grid_pos.y, distance_to_point=random.randint(15,25), check_if_passable=True)
+      random_click_iter = random.randint(0,3)
+    if i > 200:
+      poe_bot.raiseLongSleepException('portal bug')
+    nearby_portals = list(filter(lambda e: e.distance_to_player < 50, poe_bot.game_data.entities.town_portals))
+    if len(nearby_portals) == 0:
+      openPortal()
+    nearby_portals = list(filter(lambda e: e.distance_to_player < 50, poe_bot.game_data.entities.town_portals))
+    if len(nearby_portals) != 0:
+      poe_bot.helper_functions.getToPortal(check_for_map_device=False, refresh_area=False)
+  poe_bot.combat_module.clearLocationAroundPoint({"X": poe_bot.game_data.player.grid_pos.x, "Y": poe_bot.game_data.player.grid_pos.y},detection_radius=50)
+  poe_bot.loot_picker.collectLoot()
+
+
+# In[ ]:
+
+
+# while True:
+#   poe_bot.refreshInstanceData()
+#   loot_collected = poe_bot.loot_picker.collectLoot()
+#   if loot_collected == True:
+#     continue
+#   killed_smth = poe_bot.combat_module.clearAreaAroundPoint(poe_bot.game_data.player.grid_pos.toList())
+  
+#   if poe_bot.game_data.invites_panel_visible == False and killed_smth == False:
+#     openPortal()
+#     poe_bot.helper_functions.waitForPortalNearby()
+#     poe_bot.helper_functions.getToPortal(check_for_map_device=False, refresh_area=False)
+#     poe_bot.refreshInstanceData()
+#     killed_smth = poe_bot.combat_module.clearAreaAroundPoint(poe_bot.game_data.player.grid_pos.toList())
 
     
 
@@ -538,6 +650,7 @@ prefer_high_tier = True
 
 
 poe_bot.refreshAll()
+poe_bot.game_data.terrain.getCurrentlyPassableArea()
 
 
 # In[ ]:
@@ -624,4 +737,79 @@ plt.imshow(poe_bot.game_data.terrain.passable)
 poe_bot.refreshAll()
 for e in poe_bot.game_data.labels_on_ground_entities:
   print(e.raw)
+
+
+# In[20]:
+
+
+poe_bot.refreshAll()
+
+
+# In[21]:
+
+
+poe_bot.ui.stash.update()
+
+
+# In[ ]:
+
+
+max_tier_to_recycle = 11
+
+stash = poe_bot.ui.stash
+stash.update()
+waystone_items = list(filter(lambda i: i.map_tier != 0, stash.current_tab_items))
+waystones_by_tier = {
+
+}
+for item in waystone_items:
+  waystone_tier = item.map_tier
+  if waystone_tier > max_tier_to_recycle:
+    continue
+  if waystones_by_tier.get(waystone_tier, 0) == 0:
+    waystones_by_tier[waystone_tier] = []
+  waystones_by_tier[waystone_tier].append(item)
+
+waystone_tiers_sorted = list(waystones_by_tier.keys())
+waystone_tiers_sorted.sort()
+
+collected_items_count = 0
+max_items_can_get = 60
+for k in waystone_tiers_sorted:
+  waystones_amount = len(waystones_by_tier[k])
+  if waystones_amount // 3 == 0:
+    continue
+
+  collected_items_count += waystones_amount
+  if collected_items_count > max_items_can_get:
+    break
+  poe_bot.ui.clickMultipleItems(waystones_by_tier[k])
+
+
+# In[ ]:
+
+
+# on map completion if some ritual was completed
+
+# open ritual via ritual button
+# TODO open ritual button is visible, screen position
+
+ 
+poe_bot.ui.ritual_ui.update()
+poe_bot.ui.ritual_ui.visible == True
+poe_bot.ui.ritual_ui.tribute # current tribute
+poe_bot.ui.ritual_ui.reroll_cost # 750 or 1000, depends on raw text
+poe_bot.ui.ritual_ui.items # items actually
+
+interesting_items_names = [
+  "An Audience with the King",
+  "Divine orb"
+]
+
+interesting_items = list(filter(lambda i: i.name == interesting_items_names,poe_bot.ui.ritual_ui.items))
+
+for item in interesting_items:
+  print(item.raw)
+  # do something with them, defer, reroll, buyout, whatever
+
 

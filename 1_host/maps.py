@@ -2863,8 +2863,6 @@ class Mapper:
       poe_bot.bot_controls.mouse.setPosSmooth(x_pos,y_pos)
       time.sleep(random.randint(25,55)/100)
     return True  
-
-
   def deactivateDeliriumMirror(self):
     poe_bot = self.poe_bot
     bot_controls = poe_bot.bot_controls

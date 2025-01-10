@@ -488,6 +488,8 @@ class HelperFunctions:
     portals = poe_bot.game_data.entities.town_portals
     if len(portals) == 0:
       raise Exception("No portals")
+    # if poe_bot.game_data.invites_panel_visible == True:
+    #   return True
     
     portals.sort(key=lambda e: e.distance_to_player)
     orig_portal_to_enter = portals[0]

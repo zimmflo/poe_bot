@@ -45,6 +45,8 @@ class TotalCurrentReserved:
   current:int
   reserved:int
   def getPercentage(self):
+    if self.total == 0:
+      return 1.0
     return self.current / self.total
 class Life:
   health:TotalCurrentReserved

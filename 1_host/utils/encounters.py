@@ -509,6 +509,45 @@ class EssenceEncounter(Encounter):
       poe_bot.combat_module.clearLocationAroundPoint(point_to_run_around)
     poe_bot.refreshInstanceData()
     print(f'#[EssenceEncounter.doEncounter] nearby {essence_monolith} return at {time.time()}')
+class RitualEncounter(Encounter):
+  def __init__(self, poe_bot, encounter_entity:Entity):
+    super().__init__(poe_bot)
+    self.encounter_entity = encounter_entity
+  def doEncounter(self):
+    clear_area = 100
+    kite_direction_reversed = random.choice([True, False])
+    poe_bot = self.poe_bot
+    poe_bot.mover.goToEntitysPoint(self.encounter_entity, min_distance=50)
+    poe_bot.combat_module.clearAreaAroundPoint(self.encounter_entity.grid_position.toList(), detection_radius=clear_area)
+    poe_bot.mover.goToEntitysPoint(self.encounter_entity)
+    self.encounter_entity.clickTillNotTargetable()
+    while True:
+      poe_bot.refreshInstanceData()
+      killed_smth = poe_bot.combat_module.clearAreaAroundPoint(self.encounter_entity.grid_position.toList(), detection_radius=69)
+      if not killed_smth:
+        point_to_run = poe_bot.game_data.terrain.pointToRunAround(*self.encounter_entity.grid_position.toList(), reversed=kite_direction_reversed, check_if_passable=True)
+        poe_bot.mover.move(*point_to_run)
+      ritual_entity = next( (e for e in poe_bot.game_data.entities.all_entities if e.id == self.encounter_entity.id), None)
+      if ritual_entity and ritual_entity.is_opened == False:
+        break
+    return True
+        
+
+class BreachEncounter(Encounter):
+  def __init__(self, poe_bot, encounter_entity:Entity):
+    super().__init__(poe_bot)
+    self.encounter_entity = encounter_entity
+  def doEncounter(self):
+    poe_bot = self.poe_bot
+    print(f'found breach {self.encounter_entity}')
+    breach_entity_id = self.encounter_entity.id
+    poe_bot.mover.goToEntitysPoint(self.encounter_entity)
+    def custombreakfunc(*args, **kwargs):
+      breach_entity_exists = next( (e for e in poe_bot.game_data.entities.all_entities if e.id == breach_entity_id), None)
+      if breach_entity_exists == None:
+        return True
+      return False
+    poe_bot.mover.goToEntitysPoint(self.encounter_entity, min_distance=-1, custom_break_function=custombreakfunc)
 class UltimatumEncounter(Encounter):
   poe_bot: PoeBot
   ultimatum_altar:Entity

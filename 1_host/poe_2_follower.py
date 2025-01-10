@@ -22,7 +22,7 @@ poe_bot_class = Poe2Bot
 poe_bot: poe_bot_class
 
 
-# In[ ]:
+# In[3]:
 
 
 default_config = {
@@ -56,7 +56,7 @@ for key in default_config.keys():
 print(f'config to run {config}')
 
 
-# In[ ]:
+# In[4]:
 
 
 REMOTE_IP = config['REMOTE_IP'] # REMOTE_IP
@@ -66,7 +66,7 @@ force_reset_temp = config['force_reset_temp']
 print(f'running follower using: REMOTE_IP: {REMOTE_IP} unique_id: {UNIQUE_ID} force_reset_temp: {force_reset_temp}')
 
 
-# In[ ]:
+# In[5]:
 
 
 poe_bot = Poe2Bot(unique_id = UNIQUE_ID, remote_ip = REMOTE_IP, password=password)
@@ -74,6 +74,16 @@ poe_bot.refreshAll()
 poe_bot.game_data.terrain.getCurrentlyPassableArea()
 
 auto_flasks = AutoFlasks(poe_bot)
+
+def useFlasksOutsideOfHideout():
+  if poe_bot.game_data.area_raw_name[:7] != "Hideout":
+    auto_flasks.useFlasks()
+
+def mover_default_func(*args, **kwargs):
+  useFlasksOutsideOfHideout()
+  return False
+
+poe_bot.mover.default_continue_function = mover_default_func
 
 
 
@@ -99,7 +109,7 @@ auto_flasks.hp_thresh = 0.75
 # 
 
 
-# In[ ]:
+# In[8]:
 
 
 entity_to_follow:Entity = None
@@ -116,8 +126,8 @@ while True:
     _i = 0
   else:
     poe_bot.refreshInstanceData()
-  if poe_bot.game_data.area_raw_name[:7] != "Hideout":
-    auto_flasks.useFlasks()
+  
+  useFlasksOutsideOfHideout()
 
 
   

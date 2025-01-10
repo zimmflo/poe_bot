@@ -273,6 +273,13 @@ class Backend():
     if self.debug: print(f'#getPurchaseWindowHideoutUi return {time.time()}')
     return data
 
+  def getRitualUi(self):
+    if self.debug: print(f'#getRitualUi call {time.time()}')
+    url = f'{self.endpoint}/getRitualUi'
+    data = self.doRequestTillGetJson(url)
+    if self.debug: print(f'#getRitualUi return {time.time()}')
+    return data
+
   def atlasProgress(self):
     if self.debug: print(f'#atlasProgress call {time.time()}')
     url = f'{self.endpoint}/getAtlasProgress'
