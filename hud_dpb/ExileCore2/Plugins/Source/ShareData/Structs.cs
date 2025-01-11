@@ -131,6 +131,8 @@ public class ResurrectUi_c{
 }
 
 public class RitualUi_c{
+    public int rt_b_v { get; set; } // ritual button is_visible
+    public List<int> rt_b_sz { get; set; } // ritual button screen zone
     public string t { get; set; } // tribute
     public string p { get; set; } // progress
     public int v { get; set; } // is_visible

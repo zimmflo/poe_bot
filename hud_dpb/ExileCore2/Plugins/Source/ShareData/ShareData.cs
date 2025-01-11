@@ -765,6 +765,22 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
     public RitualUi_c getRitualUi(){
         RitualUi_c ritual_ui = new RitualUi_c();
         ritual_ui.v = 0;
+        var ritual_button_element = GameController.IngameState.IngameUi.GetChildFromIndices([111, 9, 12, 0]);
+        if (ritual_button_element.IsVisible == false){
+            ritual_ui.rt_b_v = 0;
+            return ritual_ui;
+        }
+
+        // ritual_ui.rt_b_v = ritual_button_element.IsVisible ? 1 : 0;
+        ritual_ui.rt_b_v = 1;
+
+        var ritual_button_rect = ritual_button_element.GetClientRect();
+        ritual_ui.rt_b_sz = new List<int> {
+            (int)ritual_button_rect.X, 
+            (int)(ritual_button_rect.X + ritual_button_rect.Width), 
+            (int)ritual_button_rect.Y, 
+            (int)(ritual_button_rect.Y + ritual_button_rect.Height), 
+        };
 
         var tribute_element = GameController.IngameState.IngameUi.GetChildFromIndices([11, 1]);
         if (tribute_element != null && tribute_element.IsVisible == true){
