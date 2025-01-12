@@ -864,27 +864,33 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
 
         auction_house_ui.g = GameController.IngameState.IngameUi.InventoryPanel.GetChildFromIndices([3,3,1]).Text;
 
-        auction_house_ui.o_i_t = auction_house_element.OfferedItemType.BaseName;
-        auction_house_ui.w_i_t = auction_house_element.WantedItemType.BaseName;
-        auction_house_ui.mt_get = auction_house_element.MarketRateGet;
-        auction_house_ui.mt_give = auction_house_element.MarketRateGive;
-        auction_house_ui.o_i_s = new List<AuctionHouseUiStock_c>();
-        foreach (var item in auction_house_element.OfferedItemStock){
-            AuctionHouseUiStock_c stock = new AuctionHouseUiStock_c();
-            stock.get = item.Get;
-            stock.give = item.Give;
-            stock.listed_count = item.ListedCount;
-            auction_house_ui.o_i_s.Add(stock);
+        if (auction_house_element.OfferedItemType != null){
+            auction_house_ui.o_i_t = auction_house_element.OfferedItemType.BaseName;
         }
-        auction_house_ui.w_i_s = new List<AuctionHouseUiStock_c>();
-        foreach (var item in auction_house_element.WantedItemStock){
-            AuctionHouseUiStock_c stock = new AuctionHouseUiStock_c();
-            stock.get = item.Get;
-            stock.give = item.Give;
-            stock.listed_count = item.ListedCount;
-            auction_house_ui.w_i_s.Add(stock);
+        if (auction_house_element.WantedItemType != null){
+            auction_house_ui.w_i_t = auction_house_element.WantedItemType.BaseName;
         }
 
+        if (auction_house_element.OfferedItemType != null && auction_house_element.WantedItemType != null){
+            auction_house_ui.mt_get = auction_house_element.MarketRateGet;
+            auction_house_ui.mt_give = auction_house_element.MarketRateGive;
+            auction_house_ui.o_i_s = new List<AuctionHouseUiStock_c>();
+            foreach (var item in auction_house_element.OfferedItemStock){
+                AuctionHouseUiStock_c stock = new AuctionHouseUiStock_c();
+                stock.get = item.Get;
+                stock.give = item.Give;
+                stock.listed_count = item.ListedCount;
+                auction_house_ui.o_i_s.Add(stock);
+            }
+            auction_house_ui.w_i_s = new List<AuctionHouseUiStock_c>();
+            foreach (var item in auction_house_element.WantedItemStock){
+                AuctionHouseUiStock_c stock = new AuctionHouseUiStock_c();
+                stock.get = item.Get;
+                stock.give = item.Give;
+                stock.listed_count = item.ListedCount;
+                auction_house_ui.w_i_s.Add(stock);
+            }
+        }
         // currency picker
         auction_house_ui.c_p = new AuctionHouseUiCurrencyPicker_c();
         auction_house_ui.c_p.v = 0;
