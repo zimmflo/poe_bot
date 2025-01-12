@@ -110,9 +110,54 @@ public class PartyInfo_c{
     public List<PartyMember_c> party_members { get; set; }
 }
 
+public class AuctionHouseUiOrder_c{
+    public string offered_item { get; set; } // text
+    public int offered_item_size { get; set; } // text
+    public int offered_item_ratio { get; set; } // text
+    public string wanted_item { get; set; } // text
+    public int wanted_item_size { get; set; } // text
+    public int wanted_item_ratio { get; set; } // text
+    public int is_completed { get; set; } // text
+    public int is_canceled { get; set; } // text
+}
+
+public class AuctionHouseUiStock_c{
+    public int get { get; set; } // text
+    public int give { get; set; } // text
+    public int listed_count { get; set; } // text
+}
+
+public class AuctionHouseUiCurrencyPickerCategory_c{
+    public string t; // text
+    public List<int> sz { get; set; } // label screen zone x1 x2 y1 y2
+    
+}
+
+public class AuctionHouseUiCurrencyPickerElements_c{
+    public string t; // text
+    public List<int> sz { get; set; } // label screen zone x1 x2 y1 y2
+    
+}
+
+public class AuctionHouseUiCurrencyPicker_c{
+    public int v; // visible
+    public List<int> sz { get; set; } // label screen zone x1 x2 y1 y2
+    public List<AuctionHouseUiCurrencyPickerCategory_c> c { get; set; } // categories
+    public List<AuctionHouseUiCurrencyPickerElements_c> p_e { get; set; } // presented elements
+}
+
 public class AuctionHouseUi_c{
     public int v; // visible
     public List<int> sz { get; set; } // label screen zone x1 x2 y1 y2
+    public string g; // current gold
+    public string o_i_t; // offered item type
+    public string w_i_t; // wanted item type
+    public int mt_get; // market rate get
+    public int mt_give; // market rate give
+    public List<AuctionHouseUiStock_c> o_i_s{ get; set; } // offered item stock
+    public List<AuctionHouseUiStock_c> w_i_s{ get; set; } // wanted item stock
+    public AuctionHouseUiCurrencyPicker_c c_p{ get; set; } // currency picker
+    public List<AuctionHouseUiOrder_c> c_o{ get; set; } // current orders
 }
 
 

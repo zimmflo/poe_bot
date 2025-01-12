@@ -461,6 +461,9 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
         } else if (request.Url.AbsolutePath =="/getPreloadedFiles"){
             var response = getPreloadedFiles();
             return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
+        } else if (request.Url.AbsolutePath =="/getAuctionHouseUi"){
+            var response = getAuctionHouseUi();
+            return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
         } else if (request.Url.AbsolutePath =="/getBanditDialogueUi"){
             var response = getBanditDialogueUi();
             return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
@@ -839,6 +842,96 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
 
 
         return ritual_ui;
+    }
+
+    public AuctionHouseUi_c getAuctionHouseUi(){
+        AuctionHouseUi_c auction_house_ui = new AuctionHouseUi_c();
+        var auction_house_element = GameController.IngameState.IngameUi.CurrencyExchangePanel;
+        auction_house_ui.v = auction_house_element.IsVisible ? 1 : 0;
+
+        if (auction_house_element.IsVisible == false){
+            return auction_house_ui;
+        }
+
+        var auction_house_rect = auction_house_element.GetClientRect();
+        auction_house_ui.sz = new List<int> {
+            (int)auction_house_rect.X, 
+            (int)(auction_house_rect.X + auction_house_rect.Width), 
+            (int)auction_house_rect.Y, 
+            (int)(auction_house_rect.Y + auction_house_rect.Height), 
+        };
+
+
+        auction_house_ui.g = GameController.IngameState.IngameUi.InventoryPanel.GetChildFromIndices([3,3,1]).Text;
+
+        auction_house_ui.o_i_t = auction_house_element.OfferedItemType.BaseName;
+        auction_house_ui.w_i_t = auction_house_element.WantedItemType.BaseName;
+        auction_house_ui.mt_get = auction_house_element.MarketRateGet;
+        auction_house_ui.mt_give = auction_house_element.MarketRateGive;
+        auction_house_ui.o_i_s = new List<AuctionHouseUiStock_c>();
+        foreach (var item in auction_house_element.OfferedItemStock){
+            AuctionHouseUiStock_c stock = new AuctionHouseUiStock_c();
+            stock.get = item.Get;
+            stock.give = item.Give;
+            stock.listed_count = item.ListedCount;
+            auction_house_ui.o_i_s.Add(stock);
+        }
+        auction_house_ui.w_i_s = new List<AuctionHouseUiStock_c>();
+        foreach (var item in auction_house_element.WantedItemStock){
+            AuctionHouseUiStock_c stock = new AuctionHouseUiStock_c();
+            stock.get = item.Get;
+            stock.give = item.Give;
+            stock.listed_count = item.ListedCount;
+            auction_house_ui.w_i_s.Add(stock);
+        }
+
+        // currency picker
+        auction_house_ui.c_p = new AuctionHouseUiCurrencyPicker_c();
+        auction_house_ui.c_p.v = 0;
+        var currency_picker_element = auction_house_element.GetChildAtIndex(19);
+        if (currency_picker_element != null && currency_picker_element.IsVisible == true){
+            auction_house_ui.c_p.v = 1;
+            auction_house_ui.c_p.sz = getListOfIntFromElRect(currency_picker_element);
+            // categories
+            auction_house_ui.c_p.c = new List<AuctionHouseUiCurrencyPickerCategory_c>();
+            var categories_element = currency_picker_element.GetChildFromIndices([5,2]);
+            foreach (var item in categories_element.Children){
+                var category = new AuctionHouseUiCurrencyPickerCategory_c();
+                category.t = item.Children[0].Text;
+                category.sz = getListOfIntFromElRect(item);
+                auction_house_ui.c_p.c.Add(category);
+            }
+            // presented elements
+            auction_house_ui.c_p.p_e = new List<AuctionHouseUiCurrencyPickerElements_c>();
+            var presented_elements_sections_parent = currency_picker_element.GetChildFromIndices([6,1]);
+            foreach (var section in presented_elements_sections_parent.Children){
+                if(section.IsVisible == false){
+                    continue;
+                }
+                foreach (var section_subcategory in section.Children){
+                    // skip [0] since its header
+                    foreach (var subcategory_item in section_subcategory.Children.Skip(1).ToArray()){
+                        var picker_element = new AuctionHouseUiCurrencyPickerElements_c();
+                        picker_element.sz = getListOfIntFromElRect(subcategory_item);
+                        picker_element.t = subcategory_item.Children[0].Text;
+                        auction_house_ui.c_p.p_e.Add(picker_element);
+                    }
+                }              
+            }
+        }
+
+        // current orders
+        return auction_house_ui;
+    }
+
+    public List<int> getListOfIntFromElRect(Element el){
+        var el_rect = el.GetClientRect();
+        return  new List<int> {
+            (int)el_rect.X, 
+            (int)(el_rect.X + el_rect.Width), 
+            (int)el_rect.Y, 
+            (int)(el_rect.Y + el_rect.Height), 
+        };
     }
 
     public List<MinimapIcon_c> getMinimapIcons(){
