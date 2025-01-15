@@ -15,6 +15,8 @@
 !1_host/
 !1_host/**
 1_host/temp
+1_host/screen_reader
+1_host/error_dumps
 
 
 # poe 1 hud plugin 
