@@ -561,6 +561,30 @@ class HelperFunctions:
       bot_controls.mouse.click()
       print(f'clicked on a portal {portal_to_enter}')
       time.sleep(random.randint(5,20)/10)
+  
+  def enterNearestPortal_new(self) -> int:
+    """
+    - 1 ok
+    - 2 no portals
+    """
+    poe_bot = self.poe_bot
+    poe_bot.refreshInstanceData()
+    if poe_bot.game_data.invites_panel_visible == True:
+      print("[enterNearestPortal_new] teleporting already")
+      return 1
+    
+    portals = list(filter(lambda e: e.isInRoi(),poe_bot.game_data.entities.town_portals))
+    if len(portals) == 0:
+      print("[enterNearestPortal_new] couldnt find portal on screen")
+      return 2
+    
+    portals.sort(key=lambda e: e.distance_to_player)
+    
+    portal_to_enter = portals[0]
+    portal_to_enter.clickTillNotTargetable(lambda *args,**kwargs: poe_bot.game_data.invites_panel_visible == True)
+    return 1
+
+  # def enterNearestPortal
   def enterNearestPortal(self):
     print(f'looking to town portals nearby')
     town_portals = self.poe_bot.game_data.entities.town_portals

@@ -5370,7 +5370,8 @@ class PathfinderPoisonConc2(Build):
 GENERIC_BUILD_ATTACKING_SKILLS = [
   "spark",
   "lightning_arrow",
-
+  "storm_wave",
+  "quarterstaff_combo_attack",
 ]
 class GenericBuild2(Build):
   def __init__(self, poe_bot):

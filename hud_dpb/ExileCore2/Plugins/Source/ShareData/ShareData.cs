@@ -24,6 +24,9 @@ using Stack = ExileCore2.PoEMemory.Components.Stack;
 using System.Linq;
 using System.Threading.Tasks;
 
+
+// 111 9 11 0 deli activator thing
+
 namespace ShareData;
 public class ShareData : BaseSettingsPlugin<ShareDataSettings>
 {
@@ -330,13 +333,23 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
                 if (state_machine_component != null){
                     entity.o = state_machine_component.States.Any(state => state.Name == "current_state" && state.Value == 2) ? 1 : 0;
                 }
+            } else if (entity.p == "Metadata/Terrain/Gallows/Leagues/Delirium/Objects/DeliriumInitiator"){
+                var state_machine_component = obj.GetComponent<StateMachine>();
+                if (state_machine_component != null){
+                    entity.o = state_machine_component.States.Any(state => state.Name == "interacted" && state.Value == 1) ? 1 : 0;
+                }
             } else {
                 var triggerable_blockage = obj.GetComponent<TriggerableBlockage>();
                 if (triggerable_blockage != null){
                     entity.o = triggerable_blockage.IsOpened ? 1 : 0;
                 }
             }
+            
+            // "Metadata/Monsters/LeagueDelirium/DoodadDaemons/DoodadDaemonShardPack<whatevergoesnext>
+            // state machine
+            // "detonated": 1 == isOpened
 
+            // "Metadata/MiscellaneousObjects/Breach/BreachObject" it has "is_transitioned" property
 
 
             // is_targetable

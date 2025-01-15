@@ -128,6 +128,66 @@ class MapsTempData(TempSkeleton):
     
     self.save()
 
+class MapperCache2(TempSkeleton):
+  # TODO supposed to be part of global temp, smth like temp["simulacrum"]
+  filename = 'mapper2.json'
+  temp_name_for_display = 'MapperCache2'
+
+  
+  def reset(self):
+    '''
+    0 - pick map, scarabs? whatever, qual + alch + scourg + vaal
+    1 - map taken, need to place it to device
+    2 - map placed, need activate
+    3 - map activated, may get in
+    4 - we are in, need to get pattern
+    '''
+    self.stage = 0
+    self.portals_left = 6
+    self.last_transition_grid_pos = {"X": 0, "Y": 0}
+    self.map_boss_killed = False
+    self.map_completed = False
+    self.cleared_bossrooms = [] # list of cleared bossrooms, so it wont stuck in there
+    
+    self.visited_wildwood = False 
+    self.invitation_progress = 0 
+
+    self.essences_opened = 0 
+    self.essences_to_ignore_ids = [] 
+    self.harvests_to_ignore_ids = [] 
+
+    self.valuable_beasts_killed = 0
+    self.killed_map_bosses_render_names = [] # to kill staged bosses or essences with mirror image
+    self.entities_to_kill_force = [] # to kill staged bosses or essences with mirror image
+
+    self.delirium_mirror_activated = False
+    self.current_map = ''
+    self.current_map_name_raw = ''
+    self.current_map_name = ''
+    self.unvisited_transitions = [] # [raw_entity, raw_entity, ] transitions we are willing to enter to do explore\bossrush
+    self.visited_transitions_ids = [] # [entity_id, entity_id, ] transitions we entered + their exit transitions
+    self.transition_chain = [] # [raw_entity, raw_entity, raw_entity, ] chain of transitions from first portal
+    self.currently_ignore_transitions_id = [] # [entity_id, entity_id, ] transitions we will ignore this time, cos theyre out of passable zone, so we cant reach them
+
+    self.alvas_to_ignore_ids = []
+    self.alva_pick_incursion = False
+    self.used_timeless_scarab_for_alva = False
+    self.need_to_place_alva_timeless_scarab = False
+    self.incursion_current_room_state = None
+    self.incursion_current_state = None
+    self.incursions_remaining = 12
+
+    self.ritual_ignore_ids = []
+
+    try:
+      self.map_streak
+    except Exception:
+      print(f'map streak is not specified, setting to 0')
+      self.map_streak = 0
+
+    
+    self.save()
+
 sessions_dict = {
   '12h_noafk':'12h_noafk',
   "12h":"12h",

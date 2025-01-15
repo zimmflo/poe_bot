@@ -2252,18 +2252,6 @@ class Mapper:
         print(f'found activators_on_map')
         self.activate(activator=activators_on_map[0])
         return True
-    # if self.settings.atlas_explorer != False:
-    #   quest_flags = poe_bot.game_data.quest_states.getOrUpdate()
-    #   have_tangle = quest_flags.get("HaveTangleMapDeviceAlteration", False)
-    #   have_cleansing_fire = quest_flags.get("HaveCleansingFireMapDeviceAlteration", False)
-    #   if have_cleansing_fire != True or have_tangle != True:
-    #     pass
-    #   # "Metadata/NPC/Epilogue/EnvoyTangle"
-    #   # "Metadata/NPC/Epilogue/EnvoyCleansingFire"
-
-    #   # "HaveTangleMapDeviceAlteration"
-    #   # "HaveCleansingFireMapDeviceAlteration"
-    #   pass
 
     if self.settings.invitation_rush is True:
       can_burn_map = self.invRushCanBurnMap(in_hideout=False)
@@ -3323,11 +3311,10 @@ def doPreparations():
 
   all_stash_items = stash.getAllItems()
 
-  if mapper.temp.map_streak > mapper.collect_beasts_every_x_maps:
+  if mapper.temp.map_streak > mapper.settings.collect_beasts_every_x_maps:
     print(f'going to release beasts this time')
     keys_stash_tabs.insert(0, 0)
     need_to_pick_something = True
-
   if len(all_stash_items) == 0:
     print('no data about items in stash, updating')
     stash.updateStashTemp()
@@ -4165,7 +4152,6 @@ print(f'discovery_points {discovery_points}')
 mapper.temp.map_streak += 1
 mapper.temp.map_completed = True
 mapper.temp.save()
-end_pos = poe_bot.player_pos
 mapper.deactivateDeliriumMirror()
 
 

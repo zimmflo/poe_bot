@@ -86,7 +86,7 @@ poe_bot.refreshAll()
 
 
 
-# In[6]:
+# In[7]:
 
 
 from utils.loot_filter import PickableItemLabel
@@ -117,20 +117,24 @@ def isItemHasPickableKey(item_label:PickableItemLabel):
 poe_bot.loot_picker.loot_filter.special_rules = [isItemHasPickableKey]
 
 
-# In[7]:
+# In[8]:
 
 
 poe_bot.mover.setMoveType('wasd')
 
 
-# In[8]:
+# In[9]:
 
 
 from utils.combat import PathfinderPoisonConc2
 from utils.combat import InfernalistZoomancer
+from utils.combat import GenericBuild2
+from utils.combat import GenericBuild2Cautious
 
 # poe_bot.combat_module.build = InfernalistZoomancer(poe_bot=poe_bot)
-poe_bot.combat_module.build = PathfinderPoisonConc2(poe_bot=poe_bot)
+# poe_bot.combat_module.build = PathfinderPoisonConc2(poe_bot=poe_bot)
+poe_bot.combat_module.build = GenericBuild2(poe_bot=poe_bot)
+# poe_bot.combat_module.build = GenericBuild2Cautious(poe_bot=poe_bot)
 poe_bot.combat_module.build.auto_flasks.life_flask_recovers_es = True
 poe_bot.combat_module.build.auto_flasks.hp_thresh = 0.70
 
@@ -149,36 +153,43 @@ def custom_default_continue_function(*args, **kwargs):
 poe_bot.mover.default_continue_function = poe_bot.combat_module.build.usualRoutine
 
 
-# In[9]:
-
-
-# raise 404
-
-
 # In[10]:
 
 
-# Ы
+# raise 404
 
 
 # In[11]:
 
 
-# poe_bot.backend.getVisibleLabels()
+# Ы
 
 
 # In[12]:
 
 
-# raise 404
+# poe_bot.backend.getVisibleLabels()
 
 
 # In[13]:
 
 
+# raise 404
+
+
+# In[14]:
+
+
 from utils.encounters import EssenceEncounter, BreachEncounter, RitualEncounter
 from utils.constants import ESSENCES_KEYWORD
 
+class MapperSettings:
+  pass
+
+# class Mapper:
+#   def run():
+#     current_map_area = getMapArea(poe_bot.game_data.area_raw_name)
+#     current_map_area.complete()
 class MapArea:
   boss_render_names:List[str] = []
 
@@ -292,17 +303,17 @@ def runnerBreakFunction(*args, **kwargs):
   
 
 
-# In[14]:
+# In[15]:
 
 
 # raise 404
 poe_bot.refreshAll()
 
 
-# In[16]:
+# In[ ]:
 
 
-# free inventory if neededS
+# free inventory if needed
 poe_bot.ui.inventory.update()
 empty_slots = poe_bot.ui.inventory.getEmptySlots()
 if len(empty_slots) < 40:
@@ -320,7 +331,7 @@ if len(empty_slots) < 40:
   time.sleep(random.uniform(0.3, 1.4))
 
 
-# In[17]:
+# In[ ]:
 
 
 # open map device
@@ -440,7 +451,7 @@ poe_bot.ui.map_device.update()
 poe_bot.ui.map_device.checkIfActivateButtonIsActive()
 
 
-# In[23]:
+# In[ ]:
 
 
 poe_bot.ui.map_device.activate()
@@ -637,7 +648,7 @@ while True:
 # In[ ]:
 
 
-raise 404
+raise Exception('Script ended, restart')
 
 
 # In[24]:
@@ -739,13 +750,13 @@ for e in poe_bot.game_data.labels_on_ground_entities:
   print(e.raw)
 
 
-# In[20]:
+# In[ ]:
 
 
 poe_bot.refreshAll()
 
 
-# In[21]:
+# In[ ]:
 
 
 poe_bot.ui.stash.update()
@@ -810,6 +821,9 @@ interesting_items = list(filter(lambda i: i.name == interesting_items_names,poe_
 
 for item in interesting_items:
   print(item.raw)
+  item.hover()
+  item_info = poe_bot.backend.getHoveredItemInfo()
+  cost = int(item_info['tt'][-2][:-1])
   # do something with them, defer, reroll, buyout, whatever
 
 

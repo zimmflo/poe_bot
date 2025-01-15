@@ -1341,7 +1341,10 @@ class MapDevice_Poe2(MapDevice):
     if poe_bot.ui.inventory.is_opened:
       borders[1] = 545
     return borders
-
+  #TODO 
+  # supposed to drag in direction rather than abusing behavior of convertposxy
+  # since if the last drag was done from the map, itll open an invisible dropdown, which will prevent from opening dropdown in future
+  # and sometimes it may drag from the icons (ziggurat or burning citadel)
   def moveScreenTo(self, map_obj: MapDeviceMap):
     poe_bot = self.poe_bot
     # map_obj = random.choice(poe_bot.ui.map_device.avaliable_maps)
@@ -1513,6 +1516,8 @@ class RitualUi(PoeBotComponent):
     self.reset()
   def reset(self):
     self.raw:dict = {}
+    self.ritual_button_visible = False
+    self.ritual_button: UiElement = None
     self.tribute = 0
     self.progress_current = 0
     self.progress_total = 0
@@ -1528,8 +1533,16 @@ class RitualUi(PoeBotComponent):
       data = self.poe_bot.backend.getRitualUi()
     self.reset()
     self.raw = data
-    if data["t"] != None:
-      self.tribute = int(data["t"])
+    self.ritual_button_visible = bool(data["rt_b_v"])
+    if self.ritual_button_visible == False:
+      return
+    self.ritual_button = UiElement(self.poe_bot, Posx1x2y1y2(*data["rt_b_sz"]))
+    tribute = data.get("t", None)
+    if tribute == None:
+      tribute = 0
+    else:
+      tribute = int(tribute.replace(",", ""))
+    self.tribute = tribute
     if data["p"] != None:
       self.progress_current = int(data["p"].split("/")[0])
       self.progress_total = int(data["p"].split("/")[1])
@@ -1538,10 +1551,8 @@ class RitualUi(PoeBotComponent):
       self.screen_zone = Posx1x2y1y2(*data["sz"])
       self.reroll_cost = int(data["r_b"].split("Cost: ")[1].split(" ")[0].replace(",", ""))
       self.reroll_button = UiElement(self.poe_bot, Posx1x2y1y2(*data["r_b_sz"]))
-
       self.defer_button_text = data["d_b"]
       self.defer_button = UiElement(self.poe_bot, Posx1x2y1y2(*data["d_b_sz"]))
-
       self.items = list(map(lambda i_raw: Item(poe_bot=self.poe_bot, item_raw=i_raw),data["i"]))
     
 x_offset = 12

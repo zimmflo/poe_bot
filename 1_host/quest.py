@@ -1010,7 +1010,7 @@ class QuestArea:
   ready = True
   location_name = "unknown"
   is_town = False
-  waypoint_string = 'unknown'
+  waypoint_string = "unknown"
   can_open_waypoint = False
   relog_after_waypoint_opened = False
   lab_trial_flag = None
@@ -4884,6 +4884,12 @@ def getQuestArea(area_raw_name:str)->QuestArea:
 poe_bot.refreshInstanceData()
 current_quest_area = getQuestArea(poe_bot.game_data.area_raw_name)
 current_quest_area.complete()
+
+
+# In[ ]:
+
+
+raise Exception('Script ended, restart')
 
 
 # In[ ]:

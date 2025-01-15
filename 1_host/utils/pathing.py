@@ -26,6 +26,7 @@ class Pather:
     self.poe_bot = poe_bot
     self.debug = poe_bot.debug
     self.utils = Utils()
+    self.tsp = TSP(poe_bot)
 
   def refreshWeightsForAStar(self, terrain_image:np.ndarray, random_val = 1, ):
     '''

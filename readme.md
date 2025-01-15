@@ -1,3 +1,14 @@
+## about
+- these are leftovers from poe1 adapted to run for poe2. Basically, smth what was used to bot maps in poe1
+
+## goals
+- make it buy/reroll/defer items from ritual with some logic
+- migrate and adapt QuestArea cpass from 1_host/quest.py for poe2 mapper
+- migrate and adapt Mapper class from 1_host/maps.py for poe2 mapper
+- rewrite 1_host/utils/combat.py
+- split 0_guest, 1_host, hud plugins by different repos, for easy updating via git
+- sell items via auction house for exalts, if too many exalts, buy div
+
 
 ## contacts
 - telegram: @shmeshhlai

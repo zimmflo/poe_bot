@@ -631,18 +631,20 @@ class Entity:
     screen_loc = self.poe_bot.backend.getLocationOnScreen(self.world_position.x, self.world_position.y,self.world_position.z)
     self.location_on_screen = PosXY(screen_loc[0], screen_loc[1])
     return self.location_on_screen
-  def clickTillNotTargetable(self, custom_break_condition=None):
-    print(f'#clickTillNotTargetable call {time.time()} {self.raw}')
+  def clickTillNotTargetable(self, custom_break_condition=lambda *args, **kwargs: False):
+    print(f'[Entity.clickTillNotTargetable] call {time.time()} {self.raw}')
     while True:
       res = self.poe_bot.mover.goToPoint(
         point=[self.grid_position.x, self.grid_position.y],
         min_distance=30,
         release_mouse_on_end=False,
-        custom_continue_function=self.poe_bot.combat_module.build.usualRoutine,
+        # custom_continue_function=self.poe_bot.combat_module.build.usualRoutine,
         step_size=random.randint(25,33)
       )
+      if custom_break_condition() == True: return True
       if res is None:
         break
+
     i = 0
     print(f'arrived to activator')
     while True:
@@ -650,6 +652,7 @@ class Entity:
       if i>80:
         self.poe_bot.raiseLongSleepException('cannot activate activator on map')
       activator_found = False
+      if custom_break_condition() == True: return True
       for activator_search_i in range(20):
         activator = next( (e for e in self.poe_bot.game_data.entities.all_entities if e.id == self.id), None)
         if activator:
@@ -670,7 +673,7 @@ class Entity:
         self.poe_bot.refreshInstanceData()
       else:
         break
-
+    return True
   
 
   def openDialogue(self, skip_texts = True, timeout_secs = 10):

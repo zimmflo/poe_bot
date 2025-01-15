@@ -538,16 +538,34 @@ class BreachEncounter(Encounter):
     super().__init__(poe_bot)
     self.encounter_entity = encounter_entity
   def doEncounter(self):
+    '''
+    doesnt include clearing the breach, itll just open it and done
+    '''
     poe_bot = self.poe_bot
-    print(f'found breach {self.encounter_entity}')
-    breach_entity_id = self.encounter_entity.id
+    print(f'[BreachEncounter.doEncounter] {self.encounter_entity}')
     poe_bot.mover.goToEntitysPoint(self.encounter_entity)
     def custombreakfunc(*args, **kwargs):
-      breach_entity_exists = next( (e for e in poe_bot.game_data.entities.all_entities if e.id == breach_entity_id), None)
-      if breach_entity_exists == None:
+      entity_exists = next( (e for e in poe_bot.game_data.entities.all_entities if e.id == self.encounter_entity.id), None)
+      if entity_exists == None:
         return True
       return False
     poe_bot.mover.goToEntitysPoint(self.encounter_entity, min_distance=-1, custom_break_function=custombreakfunc)
+    return True
+class DeliriumEncounter(Encounter):
+  def __init__(self, poe_bot, encounter_entity:Entity):
+    super().__init__(poe_bot)
+    self.encounter_entity = encounter_entity
+  def doEncounter(self):
+    poe_bot = self.poe_bot
+    print(f'[DeliriumEncounter.doEncounter] {self.encounter_entity}')
+    poe_bot.mover.goToEntitysPoint(self.encounter_entity)
+    def custombreakfunc(*args, **kwargs):
+      entity_exists = next( (e for e in poe_bot.game_data.entities.all_entities if e.id == self.encounter_entity.id and e.is_opened != True), None)
+      if entity_exists == None:
+        return True
+      return False
+    poe_bot.mover.goToEntitysPoint(self.encounter_entity, min_distance=-1, custom_break_function=custombreakfunc)
+    return True
 class UltimatumEncounter(Encounter):
   poe_bot: PoeBot
   ultimatum_altar:Entity
