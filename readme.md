@@ -4,6 +4,8 @@
 ## goals
 <!-- - mapdeivce2 rewrite dragtomapobject -->
 - either ingame lootfilter or more accurate pickup or force sell to vendor everything outside of loot picker 
+- vaal maps if possible
+- recycle maps for higher tier
 - make it buy/reroll/defer items from ritual with some logic
 - towers
 - apply deli to maps

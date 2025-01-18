@@ -33,6 +33,7 @@ class Mover:
     self.extra_points_count = 4
     self.setMoveType(move_type=move_type)
   def setMoveType(self, move_type):
+    print(f'[Mover.setMoveType] setting move_type to {move_type}')
     if move_type == "mouse":
       self.move_func = self.moveUsingMouse
       # self.stop_func = self.stopMouse
@@ -641,7 +642,9 @@ class Mover:
       bot_controls.mouse.press(pos_x,pos_y)
     else:
       bot_controls.mouse.setPosSmooth(pos_x,pos_y, wait_till_executed=False)
+    print(f'[Mover.moveUsingMouse] to pos {pos_x,pos_y}')
     return (pos_x,pos_y)
+  #TODO if it moves to the same pos where it stays, throws some exception
   def moveWASD(self, grid_pos_x = None, grid_pos_y = None, screen_pos_x = None, screen_pos_y = None):
     better_angle_additional_weights = 0.25
 

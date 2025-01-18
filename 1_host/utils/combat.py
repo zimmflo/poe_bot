@@ -5370,6 +5370,7 @@ class PathfinderPoisonConc2(Build):
 GENERIC_BUILD_ATTACKING_SKILLS = [
   "spark",
   "lightning_arrow",
+  "tempest_flurry",
   "storm_wave",
   "quarterstaff_combo_attack",
 ]
