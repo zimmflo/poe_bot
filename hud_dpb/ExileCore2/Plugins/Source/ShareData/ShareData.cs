@@ -392,6 +392,7 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
             try{
                 var response = getData(request_type);
                 DebugWindow.LogMsg("sending response");
+                return Newtonsoft.Json.JsonConvert.SerializeObject(response);
             } catch (Exception ex){
                 DebugWindow.LogMsg($"response getNpcRewardUi {ex}");
             }
