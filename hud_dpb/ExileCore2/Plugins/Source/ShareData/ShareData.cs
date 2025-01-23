@@ -1231,6 +1231,7 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
             party_el.ign = party_member_row.GetChildFromIndices([0,0]).Text;
             party_el.is_leader = (party_leader_ign == party_el.ign);
             party_el.area_raw_name = party_member_row.GetChildFromIndices([2]).Text;
+            party_el.sz = getListOfIntFromElRect(party_member_row);
             el.party_members.Add(party_el); 
         }
         return el;
