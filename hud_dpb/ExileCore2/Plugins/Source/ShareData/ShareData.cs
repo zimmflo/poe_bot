@@ -381,150 +381,154 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
     }
     string SendResponse(HttpListenerRequest request){
         DebugWindow.LogMsg($"got request {request.RawUrl}");
-
-        if (request.Url.AbsolutePath == "/getData"){
-            var request_type = "partial";
-            try{
-                request_type = request.RawUrl.Split(new [] { "type=" }, StringSplitOptions.None)[1].Split(new [] { "&" }, StringSplitOptions.None)[0];
-                request_type = "full";
-            } catch (Exception ex){}
-            DebugWindow.LogMsg(request_type);
-            try{
-                var response = getData(request_type);
-                DebugWindow.LogMsg("sending response");
+        try{
+            if (request.Url.AbsolutePath == "/getData"){
+                var request_type = "partial";
+                try{
+                    request_type = request.RawUrl.Split(new [] { "type=" }, StringSplitOptions.None)[1].Split(new [] { "&" }, StringSplitOptions.None)[0];
+                    request_type = "full";
+                } catch (Exception ex){}
+                DebugWindow.LogMsg(request_type);
+                try{
+                    var response = getData(request_type);
+                    DebugWindow.LogMsg("sending response");
+                    return Newtonsoft.Json.JsonConvert.SerializeObject(response);
+                } catch (Exception ex){
+                    DebugWindow.LogMsg($"response getData {ex}");
+                }
+            } else if (request.Url.AbsolutePath == "/getLocationOnScreen"){
+                int x = int.Parse(request.RawUrl.Split(new [] { "x=" }, StringSplitOptions.None)[1].Split(new [] { "&" }, StringSplitOptions.None)[0]);
+                int y = int.Parse(request.RawUrl.Split(new [] { "y=" }, StringSplitOptions.None)[1].Split(new [] { "&" }, StringSplitOptions.None)[0]);
+                int z = int.Parse(request.RawUrl.Split(new [] { "z=" }, StringSplitOptions.None)[1].Split(new [] { "&" }, StringSplitOptions.None)[0]);
+                var screenCoord = GameController.IngameState.Camera.WorldToScreen(new System.Numerics.Vector3(x,y,z));
+                // var screenCoord = GameController.IngameState.Camera.WorldToScreen(new Vector3(x,y,z));
+                var coords = new List<int> {
+                    (int)screenCoord.X,
+                    (int)screenCoord.Y
+                };
+                return Newtonsoft.Json.JsonConvert.SerializeObject(coords);
+            } else if (request.Url.AbsolutePath == "/getScreenPos"){
+                int y = int.Parse(request.RawUrl.Split(new [] { "y=" }, StringSplitOptions.None)[1].Split(new [] { "&" }, StringSplitOptions.None)[0]);
+                int x = int.Parse(request.RawUrl.Split(new [] { "x=" }, StringSplitOptions.None)[1].Split(new [] { "&" }, StringSplitOptions.None)[0]);
+                var pos = getScreenPos(x, y);
+                return Newtonsoft.Json.JsonConvert.SerializeObject(pos);
+            } else if (request.Url.AbsolutePath == "/getInventoryInfo"){
+                var response = getInventoryInfo();
                 return Newtonsoft.Json.JsonConvert.SerializeObject(response);
-            } catch (Exception ex){
-                DebugWindow.LogMsg($"response getNpcRewardUi {ex}");
-            }
-        } else if (request.Url.AbsolutePath == "/getLocationOnScreen"){
-            int x = int.Parse(request.RawUrl.Split(new [] { "x=" }, StringSplitOptions.None)[1].Split(new [] { "&" }, StringSplitOptions.None)[0]);
-            int y = int.Parse(request.RawUrl.Split(new [] { "y=" }, StringSplitOptions.None)[1].Split(new [] { "&" }, StringSplitOptions.None)[0]);
-            int z = int.Parse(request.RawUrl.Split(new [] { "z=" }, StringSplitOptions.None)[1].Split(new [] { "&" }, StringSplitOptions.None)[0]);
-            var screenCoord = GameController.IngameState.Camera.WorldToScreen(new System.Numerics.Vector3(x,y,z));
-            // var screenCoord = GameController.IngameState.Camera.WorldToScreen(new Vector3(x,y,z));
-            var coords = new List<int> {
-                (int)screenCoord.X,
-                (int)screenCoord.Y
+            } else if (request.Url.AbsolutePath == "/getOpenedStashInfo"){
+                var response = getStashInfo();
+                return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
+            } else if (request.Url.AbsolutePath =="/gemsToLevel"){
+                List<GemToLevelInfo> response = getGemsToLevelInfo();
+                return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
+            } else if (request.Url.AbsolutePath =="/getVisibleLabelOnGroundEntities"){
+                var response = getVisibleLabelOnGroundEntities();
+                return Newtonsoft.Json.JsonConvert.SerializeObject(response);
+            } else if (request.Url.AbsolutePath =="/getItemsOnGroundLabelsVisible"){
+                List<ItemOnGroundLabel_c> response = getItemsOnGroundLabelsVisible();
+                return Newtonsoft.Json.JsonConvert.SerializeObject(response);
+            } else if (request.Url.AbsolutePath =="/mapDeviceInfo"){
+                GetMapDeviceInfoObject response = mapDeviceInfo();
+                return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
+            } else if (request.Url.AbsolutePath =="/getAtlasProgress"){
+                List<string> response = getAtlasProgress();
+                return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
+            } else if (request.Url.AbsolutePath =="/getVisibleLabels"){
+                List<VisibleLabel> response = getVisibleLabels();
+                return Newtonsoft.Json.JsonConvert.SerializeObject(response);
+            } else if (request.Url.AbsolutePath =="/getHoveredItemInfo"){
+                InventoryObjectCustom_c response = getHoveredItemInfo();
+                return Newtonsoft.Json.JsonConvert.SerializeObject(response);
+            } else if (request.Url.AbsolutePath =="/getSkillBar"){
+                SkillsOnBar_c response = getSkillBar(true);
+                return Newtonsoft.Json.JsonConvert.SerializeObject(response);
+            } else if (request.Url.AbsolutePath =="/getLabTrialsState"){
+                var response = GameController.IngameState.IngameUi.GetQuests;
+                return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
+            } else if (request.Url.AbsolutePath =="/getQuestStates"){
+                var response = getQuestStates();
+                return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
+            } else if (request.Url.AbsolutePath =="/getWaypointsState"){
+                var response = GameController.IngameState.Data.ServerData.WaypointsUnlockState;
+                return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
+            } else if (request.Url.AbsolutePath =="/getMinimapIcons"){
+                var response = getMinimapIcons();
+                return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
+            } else if (request.Url.AbsolutePath =="/getRitualUi"){
+                var response = getRitualUi();
+                return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
+            } else if (request.Url.AbsolutePath =="/getWorldMapUi"){
+                var response = getWorldMapUi();
+                return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
+            } else if (request.Url.AbsolutePath =="/getUltimatumNextWaveUi"){
+                var response = getUltimatumNextWaveUi();
+                return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
+            } else if (request.Url.AbsolutePath =="/getResurrectUi"){
+                var response = getResurrectUi();
+                return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
+            }  else if (request.Url.AbsolutePath =="/getPurchaseWindowHideoutUi"){
+                var response = getPurchaseWindowHideoutUi();
+                return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
+            } else if (request.Url.AbsolutePath =="/getKirakMissionsUi"){
+                var response = getKirakMissionsUi();
+                return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
+            } else if (request.Url.AbsolutePath =="/getQuestFlags"){
+                var response = GameController.IngameState.Data.ServerData.QuestFlags;
+                return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
+            } else if (request.Url.AbsolutePath =="/getPreloadedFiles"){
+                var response = getPreloadedFiles();
+                return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
+            } else if (request.Url.AbsolutePath =="/getAuctionHouseUi"){
+                var response = getAuctionHouseUi();
+                return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
+            } else if (request.Url.AbsolutePath =="/getBanditDialogueUi"){
+                var response = getBanditDialogueUi();
+                return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
+            } else if (request.Url.AbsolutePath =="/ForceRefreshArea"){
+                GameController.Area.ForceRefreshArea();
+                var response = "ForceRefreshArea_OK";
+                return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
+            } else if (request.Url.AbsolutePath =="/getNecropolisPopupUI"){
+                var response = getNecropolisPopupUI();
+                return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
+            } else if (request.Url.AbsolutePath =="/getMapInfo"){
+                var response = getMapInfo();
+                return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
+            } else if (request.Url.AbsolutePath =="/getEntityIdByPlayerName"){
+                string player_name = request.RawUrl.Split(new [] { "type=" }, StringSplitOptions.None)[1].Split(new [] { "&" }, StringSplitOptions.None)[0];
+                var response = getEntityIdByPlayerName(player_name);
+                return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
+            } else if (request.Url.AbsolutePath =="/getPartyInfo"){
+                var response = getPartyInfo();
+                return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
+            } else if (request.Url.AbsolutePath =="/getIncursionUi"){
+                try{
+                    var response = getIncursionUi();
+                    return Newtonsoft.Json.JsonConvert.SerializeObject(response);
+                } catch (Exception ex){
+                    DebugWindow.LogMsg($"response getIncursionUi {ex}");
+                }
+            } else if (request.Url.AbsolutePath =="/getNpcDialogueUi"){
+                try{
+                    var response = getNpcDialogueUi();
+                    return Newtonsoft.Json.JsonConvert.SerializeObject(response);
+                } catch (Exception ex){
+                    DebugWindow.LogMsg($"response geNpcDialogueUi {ex}");
+                }
+            } else if (request.Url.AbsolutePath =="/getNpcRewardUi"){
+                try{
+                    var response = getNpcRewardUi();
+                    return Newtonsoft.Json.JsonConvert.SerializeObject(response);
+                } catch (Exception ex){
+                    DebugWindow.LogMsg($"response getNpcRewardUi {ex}");
+                }
+            } else {
+                return "dont understand";
             };
-            return Newtonsoft.Json.JsonConvert.SerializeObject(coords);
-        } else if (request.Url.AbsolutePath == "/getScreenPos"){
-            int y = int.Parse(request.RawUrl.Split(new [] { "y=" }, StringSplitOptions.None)[1].Split(new [] { "&" }, StringSplitOptions.None)[0]);
-            int x = int.Parse(request.RawUrl.Split(new [] { "x=" }, StringSplitOptions.None)[1].Split(new [] { "&" }, StringSplitOptions.None)[0]);
-            var pos = getScreenPos(x, y);
-            return Newtonsoft.Json.JsonConvert.SerializeObject(pos);
-        } else if (request.Url.AbsolutePath == "/getInventoryInfo"){
-            var response = getInventoryInfo();
-            return Newtonsoft.Json.JsonConvert.SerializeObject(response);
-        } else if (request.Url.AbsolutePath == "/getOpenedStashInfo"){
-            var response = getStashInfo();
-            return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
-        } else if (request.Url.AbsolutePath =="/gemsToLevel"){
-            List<GemToLevelInfo> response = getGemsToLevelInfo();
-            return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
-        } else if (request.Url.AbsolutePath =="/getVisibleLabelOnGroundEntities"){
-            var response = getVisibleLabelOnGroundEntities();
-            return Newtonsoft.Json.JsonConvert.SerializeObject(response);
-        } else if (request.Url.AbsolutePath =="/getItemsOnGroundLabelsVisible"){
-            List<ItemOnGroundLabel_c> response = getItemsOnGroundLabelsVisible();
-            return Newtonsoft.Json.JsonConvert.SerializeObject(response);
-        } else if (request.Url.AbsolutePath =="/mapDeviceInfo"){
-            GetMapDeviceInfoObject response = mapDeviceInfo();
-            return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
-        } else if (request.Url.AbsolutePath =="/getAtlasProgress"){
-            List<string> response = getAtlasProgress();
-            return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
-        } else if (request.Url.AbsolutePath =="/getVisibleLabels"){
-            List<VisibleLabel> response = getVisibleLabels();
-            return Newtonsoft.Json.JsonConvert.SerializeObject(response);
-        } else if (request.Url.AbsolutePath =="/getHoveredItemInfo"){
-            InventoryObjectCustom_c response = getHoveredItemInfo();
-            return Newtonsoft.Json.JsonConvert.SerializeObject(response);
-        } else if (request.Url.AbsolutePath =="/getSkillBar"){
-            SkillsOnBar_c response = getSkillBar(true);
-            return Newtonsoft.Json.JsonConvert.SerializeObject(response);
-        } else if (request.Url.AbsolutePath =="/getLabTrialsState"){
-            var response = GameController.IngameState.IngameUi.GetQuests;
-            return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
-        } else if (request.Url.AbsolutePath =="/getQuestStates"){
-            var response = getQuestStates();
-            return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
-        } else if (request.Url.AbsolutePath =="/getWaypointsState"){
-            var response = GameController.IngameState.Data.ServerData.WaypointsUnlockState;
-            return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
-        } else if (request.Url.AbsolutePath =="/getMinimapIcons"){
-            var response = getMinimapIcons();
-            return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
-        } else if (request.Url.AbsolutePath =="/getRitualUi"){
-            var response = getRitualUi();
-            return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
-        } else if (request.Url.AbsolutePath =="/getWorldMapUi"){
-            var response = getWorldMapUi();
-            return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
-        } else if (request.Url.AbsolutePath =="/getUltimatumNextWaveUi"){
-            var response = getUltimatumNextWaveUi();
-            return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
-        } else if (request.Url.AbsolutePath =="/getResurrectUi"){
-            var response = getResurrectUi();
-            return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
-        }  else if (request.Url.AbsolutePath =="/getPurchaseWindowHideoutUi"){
-            var response = getPurchaseWindowHideoutUi();
-            return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
-        } else if (request.Url.AbsolutePath =="/getKirakMissionsUi"){
-            var response = getKirakMissionsUi();
-            return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
-        } else if (request.Url.AbsolutePath =="/getQuestFlags"){
-            var response = GameController.IngameState.Data.ServerData.QuestFlags;
-            return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
-        } else if (request.Url.AbsolutePath =="/getPreloadedFiles"){
-            var response = getPreloadedFiles();
-            return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
-        } else if (request.Url.AbsolutePath =="/getAuctionHouseUi"){
-            var response = getAuctionHouseUi();
-            return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
-        } else if (request.Url.AbsolutePath =="/getBanditDialogueUi"){
-            var response = getBanditDialogueUi();
-            return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
-        } else if (request.Url.AbsolutePath =="/ForceRefreshArea"){
-            GameController.Area.ForceRefreshArea();
-            var response = "ForceRefreshArea_OK";
-            return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
-        } else if (request.Url.AbsolutePath =="/getNecropolisPopupUI"){
-            var response = getNecropolisPopupUI();
-            return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
-        } else if (request.Url.AbsolutePath =="/getMapInfo"){
-            var response = getMapInfo();
-            return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
-        } else if (request.Url.AbsolutePath =="/getEntityIdByPlayerName"){
-            string player_name = request.RawUrl.Split(new [] { "type=" }, StringSplitOptions.None)[1].Split(new [] { "&" }, StringSplitOptions.None)[0];
-            var response = getEntityIdByPlayerName(player_name);
-            return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
-        } else if (request.Url.AbsolutePath =="/getPartyInfo"){
-            var response = getPartyInfo();
-            return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
-        } else if (request.Url.AbsolutePath =="/getIncursionUi"){
-            try{
-                var response = getIncursionUi();
-                return Newtonsoft.Json.JsonConvert.SerializeObject(response);
-            } catch (Exception ex){
-                DebugWindow.LogMsg($"response getIncursionUi {ex}");
-            }
-        } else if (request.Url.AbsolutePath =="/getNpcDialogueUi"){
-            try{
-                var response = getNpcDialogueUi();
-                return Newtonsoft.Json.JsonConvert.SerializeObject(response);
-            } catch (Exception ex){
-                DebugWindow.LogMsg($"response geNpcDialogueUi {ex}");
-            }
-        } else if (request.Url.AbsolutePath =="/getNpcRewardUi"){
-            try{
-                var response = getNpcRewardUi();
-                return Newtonsoft.Json.JsonConvert.SerializeObject(response);
-            } catch (Exception ex){
-                DebugWindow.LogMsg($"response getNpcRewardUi {ex}");
-            }
-        } else {
-            return "dont understand";
-        };
+        } catch (Exception ex){
+            DebugWindow.LogMsg($"SendResponse {ex}");
+        }
+
         return "dont understand";
     }
 
@@ -1780,7 +1784,7 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
                     (int)(placemapwindowelementrectangle.Y + placemapwindowelementrectangle.Height), 
                 };
 
-                var activatebuttonreactangle = place_map_window_element.Children[1].Children[5].Children[1].GetClientRect();
+                var activatebuttonreactangle = place_map_window_element.Children[1].Children[6].Children[1].GetClientRect();
                 map_device_info.pmw_ab_sz = new List<int> {
                     (int)activatebuttonreactangle.X, 
                     (int)(activatebuttonreactangle.X + activatebuttonreactangle.Width), 
@@ -1791,7 +1795,7 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
 
 
 
-                var items_placed_in_map_device_parent = place_map_window_element.Children[1].Children[5].Children[0];
+                var items_placed_in_map_device_parent = place_map_window_element.Children[1].Children[6].Children[0];
                 List<InventoryObjectCustom_c> items  = new List<InventoryObjectCustom_c>();
                 int i_start = 1;
                 int i_end = items_placed_in_map_device_parent.Children.Count;
