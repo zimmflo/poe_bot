@@ -53,7 +53,12 @@ MAPS_TO_IGNORE = [
   "MapAugury_NoBoss", # activators
   "MapAugury", # activators
   "MapFortress", #TODO class MapFortress boss activators
-  "MapLostTowers" # class MapLostTowers multi layerd location
+  
+  "MapLostTowers", # class MapLostTowers multi layerd location
+  "MapBluff", # tower
+  "MapMesa", # tower
+  "MapSwampTower", # multi layerd
+  "MapSwampTower_NoBoss", # multi layerd
 ]
 
 class MapperSettings:
@@ -845,11 +850,11 @@ alch_map_if_possible = True
 
 
 
-# In[ ]:
+# In[4]:
 
 
 default_config = {
-  "REMOTE_IP": '172.24.30.136', # z2
+  "REMOTE_IP": '172.30.96.254', # z2
   "unique_id": "poe_2_test",
   "build": "EaBallistasEle",
   "password": None,
@@ -891,7 +896,7 @@ force_reset_temp = config['force_reset_temp']
 print(f'running aqueduct using: REMOTE_IP: {REMOTE_IP} unique_id: {UNIQUE_ID} max_lvl: {MAX_LVL} chromatics_recipe: {CHROMATICS_RECIPE} force_reset_temp: {force_reset_temp}')
 
 
-# In[ ]:
+# In[5]:
 
 
 poe_bot = Poe2Bot(unique_id = UNIQUE_ID, remote_ip = REMOTE_IP, password=password)
@@ -901,7 +906,7 @@ poe_bot.refreshAll()
 poe_bot.mover.setMoveType('wasd')
 
 
-# In[ ]:
+# In[6]:
 
 
 # set up build
@@ -915,10 +920,245 @@ poe_bot.mover.setMoveType('wasd')
 # from utils.combat import GenericBuild2Cautious
 # poe_bot.combat_module.build = GenericBuild2Cautious(poe_bot=poe_bot)
 
-from utils.combat import PathfinderPoisonConc2
-poe_bot.combat_module.build = PathfinderPoisonConc2(poe_bot=poe_bot)
-poe_bot.combat_module.build.auto_flasks.life_flask_recovers_es = True
-poe_bot.combat_module.build.auto_flasks.hp_thresh = 0.70
+# from utils.combat import PathfinderPoisonConc2
+# poe_bot.combat_module.build = PathfinderPoisonConc2(poe_bot=poe_bot)
+# poe_bot.combat_module.build.auto_flasks.life_flask_recovers_es = True
+# poe_bot.combat_module.build.auto_flasks.hp_thresh = 0.70
+
+
+
+# In[7]:
+
+
+from utils.combat import Build, SkillWithDelay, DodgeRoll
+from utils.mover import Mover
+from utils.utils import createLineIteratorWithValues
+from utils.utils import extendLine
+from utils.constants import CONSTANTS
+
+import numpy as np
+
+import _thread
+
+class ButtonHolder:
+  def __init__(self, poe_bot:Poe2Bot, button:str, max_hold_duration = 10., custom_break_function=lambda: False):
+    self.poe_bot = poe_bot
+    self.thread_finished = [False]
+    self.can_hold_till = [0]
+    self.custom_break_function = custom_break_function
+
+    self.button = button
+    self.press_func = poe_bot.bot_controls.keyboard_pressKey
+    self.release_func = poe_bot.bot_controls.keyboard_releaseKey
+
+    self.max_hold_duration = max_hold_duration
+
+    self.keep_thread_till = 0.
+    self.terminate_thread_after_inactivity_secs = 2.
+
+    self.running = False
+  def start(self):
+    self.running = True
+    print(f'[ButtonHolder.start] started at {time.time()}')
+    while self.thread_finished[0] != True:
+      if time.time() < self.can_hold_till[0]:
+        if (self.button in poe_bot.bot_controls.keyboard.pressed) == False:
+          print(f'pressing button {self.button}')
+          self.press_func(self.button, False)
+      else:
+        if (self.button in poe_bot.bot_controls.keyboard.pressed):
+          print(f'releasing button {self.button}')
+          self.release_func(self.button, False)
+
+      if time.time() > self.keep_thread_till:
+        print('terminating thread due to inactivity')
+        break
+      
+      if self.custom_break_function() == True:
+        print('breaking because of condition')
+        break
+      time.sleep(0.02)
+    if (self.button in poe_bot.bot_controls.keyboard.pressed):
+      print(f'releasing button {self.button}')
+      self.release_func(self.button, False)
+    print(f'[ButtonHolder.start] finished at {time.time()}')
+    self.running = False
+  
+  def keepAlive(self):
+    self.keep_thread_till = time.time() + self.terminate_thread_after_inactivity_secs
+
+  def forceStopPress(self):
+    self.keepAlive()
+    self.can_hold_till[0] = 0
+    print(f'releasing')
+  def holdFor(self, t:float):
+    self.keepAlive()
+    self.can_hold_till[0] = time.time() + t
+    print(f"will hold till {self.can_hold_till[0]}")
+    if self.running != True:
+      _thread.start_new_thread(self.start, ())
+class BarrierInvocationInfernalist(Build):
+  def __init__(self, poe_bot):
+    super().__init__(poe_bot)
+    self.auto_flasks.life_flask_recovers_es = True
+    self.auto_flasks.hp_thresh = 0.75
+    self.can_use_flask_after = 0.
+    self.barrier_charged_at = 0.
+    self.es_thresh_for_loop = 0.66
+    self.stop_spamming_condition_func = lambda: poe_bot.game_data.player.life.energy_shield.getPercentage() < self.es_thresh_for_loop
+
+    self.barrier_invocation:SkillWithDelay
+    self.curse:SkillWithDelay
+    self.demon_form:SkillWithDelay
+
+    demon_form = next((s for s in poe_bot.game_data.skills.internal_names if s == "demon_transformation"), None)
+    if demon_form:
+      print('found demon form')
+      skill_index = poe_bot.game_data.skills.internal_names.index("demon_transformation")
+      self.demon_form = SkillWithDelay(poe_bot, skill_index)
+    else:
+      raise Exception("demon form not found")
+    curse = next((s for s in poe_bot.game_data.skills.internal_names if s == "cold_weakness"), None)
+    if curse:
+      print('found curse')
+      skill_index = poe_bot.game_data.skills.internal_names.index("cold_weakness")
+      self.curse = SkillWithDelay(poe_bot, skill_index, min_delay=0.1)
+    else:
+      raise Exception("cwdt activator not found")
+    
+    barrier = next((s for s in poe_bot.game_data.skills.internal_names if s == "barrier_invocation"), None)
+    if barrier:
+      print('found barrier_invocation')
+      skill_index = poe_bot.game_data.skills.internal_names.index("barrier_invocation")
+      self.barrier_invocation = SkillWithDelay(poe_bot, skill_index, min_delay=0.1)
+      self.barrier_invocation_key_holder = ButtonHolder(poe_bot, self.barrier_invocation.skill_key, custom_break_function=self.stop_spamming_condition_func)
+    else:
+      raise Exception("cwdt trigger not found")
+
+    self.dodge = DodgeRoll(self.poe_bot)
+
+  def useFlasks(self):
+    poe_bot = self.poe_bot
+    buffs = poe_bot.game_data.player.buffs
+    is_ignited = "ignited" in buffs
+    is_in_demon_form = "demon_form_spell_gem_buff" in buffs
+    is_barrier_charged = "invocation_skill_ready" in buffs
+    if is_ignited and time.time() > self.can_use_flask_after:
+      active_flask_effects_count = len(list(filter(lambda e: e == "flask_effect_life", poe_bot.game_data.player.buffs)))
+      print(f"[BarrierInvocationInfernalist.useFlasks] flask_effects_active_count: {active_flask_effects_count}")
+      if active_flask_effects_count < 5:
+        for flask in poe_bot.game_data.player.life_flasks:
+          if flask.can_use is True:
+            if flask.index > 5 or flask.index < 0: continue
+            print(f'[AutoFlasks] using life flask {flask.name} {flask.index} {type(flask.index)}')
+            self.poe_bot.bot_controls.keyboard.pressAndRelease(f'DIK_{flask.index+1}', delay=random.randint(15,35)/100, wait_till_executed=False)
+            self.can_use_flask_after = time.time() + random.uniform(0.40, 0.50)
+            break
+    else:
+      self.auto_flasks.useFlasks()
+
+    if is_in_demon_form == False:
+      print(f'[BarrierInvocationInfernalist.useFlasks] need to activate demon form')
+      self.demon_form.use()
+      return
+
+    if self.stop_spamming_condition_func() == False:
+    # if poe_bot.game_data.player.life.energy_shield.getPercentage() > 0.75:
+      print(f"[BarrierInvocationInfernalist.useFlasks] can cast barrier invocation")
+      if time.time() - 2 > self.barrier_charged_at and is_barrier_charged == False:
+        print(f'barrier is not charged')
+        self.curse.use()
+        # self.barrier_charged_at = time.time()
+      else:
+        self.barrier_invocation_key_holder.holdFor(0.35)
+        if is_barrier_charged == True:
+          self.barrier_charged_at = time.time()
+    else:
+      print(f'seems like hp is < {self.es_thresh_for_loop}')
+      self.barrier_invocation_key_holder.forceStopPress()
+  def usualRoutine(self, mover:Mover):
+    poe_bot = self.poe_bot
+    self.useFlasks()
+    self.useBuffs()
+    nearby_enemies = list(filter(lambda e: e.isInRoi() and e.isInLineOfSight(), poe_bot.game_data.entities.attackable_entities))
+    pos_x_to_go, pos_y_to_go = mover.nearest_passable_point[0], mover.nearest_passable_point[1]
+    if len(nearby_enemies) != 0:
+      nearby_enemies.sort(key=lambda e: e.distance_to_player)
+      nearby_enemies[0].hover(wait_till_executed=False)
+    else:
+      # move mouse towards direction
+      screen_pos_x, screen_pos_y = poe_bot.getPositionOfThePointOnTheScreen(pos_y_to_go, pos_x_to_go)
+      screen_pos_x, screen_pos_y = poe_bot.game_window.convertPosXY(screen_pos_x, screen_pos_y)
+      poe_bot.bot_controls.mouse.setPosSmooth(screen_pos_x, screen_pos_y, False)
+    if mover.distance_to_target > 50:
+      # distance to next step on screen
+      distance_to_next_step = dist( (poe_bot.game_data.player.grid_pos.x, poe_bot.game_data.player.grid_pos.y), (pos_x_to_go, pos_y_to_go))
+      print(f'distance_to_next_step {distance_to_next_step}')
+      if distance_to_next_step > 20:
+        path_values = createLineIteratorWithValues((poe_bot.game_data.player.grid_pos.x, poe_bot.game_data.player.grid_pos.y), (pos_x_to_go, pos_y_to_go), poe_bot.game_data.terrain.passable)
+        path_without_obstacles = np.all(path_values[:,2] > 0)
+        print(f'path_without_obstacles {path_without_obstacles}')
+        if path_without_obstacles:
+          mover.move(pos_x_to_go, pos_y_to_go)
+          if self.dodge.use(wait_for_execution=False) is True:
+            return True
+
+    return False
+  def killUsual(self, entity, is_strong=False, max_kill_time_sec=10, *args, **kwargs):
+    poe_bot = self.poe_bot
+    entity_to_kill_id = entity.id
+    self.useFlasks()
+    entity_to_kill = next((e for e in poe_bot.game_data.entities.attackable_entities if e.id == entity_to_kill_id), None)
+    if not entity_to_kill:
+      print('[build.killUsual] cannot find desired entity to kill')
+      return True
+    if entity_to_kill.life.health.current == 0:
+      print('[build.killUsual] entity is dead')
+      return True
+    if entity_to_kill.isInRoi() == False or entity_to_kill.isInLineOfSight() == False:
+      print('[build.killUsual] getting closer in killUsual')
+      return False
+
+    keep_distance = 30 # if our distance is smth like this, kite
+    start_time = time.time()
+    kite_distance = random.randint(35,45)
+    reversed_run = random.choice([True, False])
+
+    entity_to_kill.hover(wait_till_executed=False)
+    poe_bot.last_action_time = 0
+    while True:
+      poe_bot.refreshInstanceData()
+      self.useFlasks()
+      entity_to_kill = next((e for e in poe_bot.game_data.entities.attackable_entities if e.id == entity_to_kill_id), None)
+      if not entity_to_kill:
+        print('[build.killUsual] cannot find desired entity to kill')
+        break
+      print(f'[build.killUsual] entity_to_kill {entity_to_kill}')
+      if entity_to_kill.life.health.current == 0:
+        print('[build.killUsual] entity is dead')
+        break
+      if entity_to_kill.isInRoi() == False or entity_to_kill.isInLineOfSight() == False:
+        print('[build.killUsual] getting closer in killUsual ')
+        break
+
+      skill_used = self.useBuffs()
+      entity_to_kill.hover()
+      if entity_to_kill.distance_to_player > keep_distance:
+        print('[build.killUsual] kiting around')
+        point = self.poe_bot.game_data.terrain.pointToRunAround(entity_to_kill.grid_position.x, entity_to_kill.grid_position.y, kite_distance+random.randint(-1,1), check_if_passable=True, reversed=reversed_run)
+        poe_bot.mover.move(grid_pos_x = point[0], grid_pos_y = point[1])
+      else:
+        print('[build.killUsual] kiting away')
+        p0 = (entity_to_kill.grid_position.x, entity_to_kill.grid_position.y)
+        p1 = (poe_bot.game_data.player.grid_pos.x, poe_bot.game_data.player.grid_pos.y)
+        go_back_point = self.poe_bot.pather.findBackwardsPoint(p1, p0)
+        poe_bot.mover.move(*go_back_point)
+
+      if time.time()  > start_time + max_kill_time_sec:
+        print('[build.killUsual] exceed time')
+        break
+    return True
+poe_bot.combat_module.build = BarrierInvocationInfernalist(poe_bot)
 
 
 
@@ -929,7 +1169,7 @@ poe_bot.combat_module.build.auto_flasks.hp_thresh = 0.70
 poe_bot.mover.default_continue_function = poe_bot.combat_module.build.usualRoutine
 
 
-# In[ ]:
+# In[9]:
 
 
 mapper_settings = MapperSettings({})
@@ -938,7 +1178,7 @@ mapper_settings.do_rituals = True
 # mapper_settings.do_rituals_buyout_function = 
 
 
-# In[ ]:
+# In[10]:
 
 
 mapper = Mapper2(poe_bot=poe_bot, settings = mapper_settings)
@@ -981,7 +1221,7 @@ if mapper.settings.waystone_upgrade_to_rare:
 poe_bot.loot_picker.loot_filter.special_rules = [isItemHasPickableKey]
 
 
-# In[ ]:
+# In[12]:
 
 
 #TODO make it possible to wrap it into while loop, if ok, move whole mapper to utils/mapper2.py
@@ -998,6 +1238,12 @@ raise Exception('Script ended, restart')
 
 
 # testing below, wont be executed, debugging only
+
+
+# In[15]:
+
+
+poe_bot.refreshAll()
 
 
 # In[ ]:
@@ -1019,7 +1265,7 @@ mapper.cache.map_completed = False
 mapper.cache.save()
 
 
-# In[ ]:
+# In[12]:
 
 
 mapper.cache.stage = 2
@@ -1275,6 +1521,115 @@ for k in waystone_tiers_sorted:
   poe_bot.ui.clickMultipleItems(waystones_by_tier[k])
 
 
+# In[1]:
+
+
+'''
+manually calculating weights
+
+// https://poe2scout.com/economy/ritual
+table_el = document.querySelector("#root > div.css-e2yq0w > div.css-1r2vj6j > div > div > div.MuiTableContainer-root.css-1o4uwu > table > tbody")
+ind_elements = Array.from(table_el.querySelectorAll("tr.MuiTableRow-root"))
+prices = ind_elements.map(el=>{
+  let name = el.querySelector('span').textContent;
+  let price = el.querySelector('span.price-value').textContent;
+  return ([name, price])
+})
+texts =prices.map(el=>{
+  return (`"${el[0]}": ${el[1]},`)
+})
+console.log(texts.join(`\n`))
+'''
+ritual_items_weights = {
+    "An Audience with the King": 1600.0,
+    # omens
+    "Omen of Sinistral Erasure": 5430.0,
+    "Omen of Dextral Annulment": 2896.0,
+    "Omen of Sinistral Annulment": 2534.0,
+    "Omen of Dextral Erasure": 1991.0,
+    "Omen of Whittling": 1448.0,
+    "Omen of Corruption": 99.0,
+    "Omen of Amelioration": 80.0,
+    "Omen of Greater Annulment": 7.0,
+    "Omen of Sinistral Alchemy": 3.0,
+    "Omen of Resurgence": 3.0,
+    "Omen of Sinistral Exaltation": 2.0,
+    "Omen of Dextral Exaltation": 1.0,
+    "Omen of Dextral Alchemy": 1.0,
+    "Omen of Dextral Coronation": 1.0,
+    "Omen of Greater Exaltation": 1.0,
+    "Omen of Refreshment": 1.0,
+    "Omen of Sinistral Coronation": 1.0,
+    # currency
+    "Mirror of Kalandra": 71857.0,
+    "Perfect Jeweller's Orb": 350.0,
+    "Divine Orb": 200.0,
+    "Greater Jeweller's Orb": 18.0,
+    "Orb of Annulment": 9.0,
+    "Orb of Chance": 6.0,
+    "Chaos Orb": 4.0,
+    "Gemcutter's Prism": 1.7,
+    "Artificer's Shard": 1.0,
+    "Scroll of Wisdom": 1.0,
+    "Arcanist's Etcher": 1.0,
+    "Transmutation Shard": 1.0,
+    "Exalted Orb": 1.0,
+    "Lesser Jeweller's Orb": 1.0,
+    "Glassblower's Bauble": 0.8,
+    "Blacksmith's Whetstone": 0.5,
+    "Armourer's Scrap": 0.5,
+    "Orb of Alchemy": 0.4,
+    "Artificer's Orb": 0.3,
+    "Vaal Orb": 0.2,
+    "Regal Shard": 0.1,
+    "Regal Orb": 0.1,
+    "Orb of Augmentation": 0.0,
+    "Orb of Transmutation": 0.0,
+    # ess
+    "Greater Essence of Haste": 550.0,
+    "Greater Essence of the Infinite": 120.0,
+    "Greater Essence of Electricity": 60.0,
+    "Greater Essence of Torment": 50.0,
+    "Greater Essence of Sorcery": 50.0,
+    "Greater Essence of the Mind": 20.0,
+    "Greater Essence of Battle": 14.0,
+    "Greater Essence of Enhancement": 13.0,
+    "Greater Essence of Ruin": 13.0,
+    "Greater Essence of Ice": 7.0,
+    "Essence of Electricity": 5.0,
+    "Greater Essence of the Body": 5.0,
+    "Greater Essence of Flames": 5.0,
+    "Essence of Ruin": 1.0,
+    "Essence of Enhancement": 0.9,
+    "Essence of Haste": 0.9,
+    "Essence of Torment": 0.8,
+    "Essence of Flames": 0.8,
+    "Essence of the Body": 0.5,
+    "Essence of the Infinite": 0.5,
+    "Essence of Battle": 0.5,
+    "Essence of Ice": 0.5,
+    "Essence of the Mind": 0.5,
+    "Essence of Sorcery": 0.5,
+
+}
+
+poe_bot.mover.stopMoving()
+#TODO check if it's safe stop spot
+
+poe_bot.ui.ritual_ui.update()
+
+# Check if the ritual progress is complete and click the ritual button if so
+if poe_bot.ui.ritual_ui.progress_current == poe_bot.ui.ritual_ui.progress_total:
+  poe_bot.ui.ritual_ui.ritual_button.click()
+
+poe_bot.ui.ritual_ui.update()
+
+items_to_pay_attention = []
+for item in poe_bot.ui.ritual_ui.items:
+  # or item.unique_name
+  item.name 
+
+
 # In[ ]:
 
 
@@ -1393,4 +1748,115 @@ if poe_bot.ui.map_device.place_map_window_opened != True:
     raise Exception("[Mapper.activateMap] cant open dropdown for map device #TODO click on other map element in roi and try again?")
     poe_bot.raiseLongSleepException("[Mapper.activateMap] cant open dropdown for map device #?")
 poe_bot.ui.map_device.update()
+
+
+# In[ ]:
+
+
+# cwdt calc
+max_hp = 592   
+max_es = 5652
+fire_res = 77 # %
+
+barrier_meta_gain = 124 # %g
+
+trigger_cost = (max_hp+max_es) * ((100-fire_res)/100)
+print(trigger_cost)
+energy_gain = (trigger_cost/5) * (1+barrier_meta_gain/100)
+print(energy_gain)
+
+
+# In[52]:
+
+
+poe_bot.refreshAll()
+
+
+# In[53]:
+
+
+
+
+
+# In[54]:
+
+
+bd.barrier_invocation.skill_key
+
+
+# In[13]:
+
+
+poe_bot.refreshAll()
+poe_bot.bot_controls.disconnect()
+
+
+# In[14]:
+
+
+while True:
+  poe_bot.refreshInstanceData()
+  poe_bot.combat_module.build.useFlasks()
+
+
+# In[ ]:
+
+
+press_func = poe_bot.bot_controls.keyboard_pressKey
+release_func = poe_bot.bot_controls.keyboard_releaseKey
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+bh = ButtonHolder("DIK_E")
+bh.holdFor(12.0)
+
+
+# In[ ]:
+
+
+bh.forceStopPress()
+
+
+# In[ ]:
+
+
+bh.holdFor(10.0)
+
+
+# In[ ]:
+
+
+bh.thread_finished[0] = True
+
+
+# In[ ]:
+
+
+poe_bot.bot_controls.keyboard.pressed
+
+
+# In[ ]:
+
+
+poe_bot.bot_controls.keyboard_pressKey('DIK_F')
+
+
+# In[ ]:
+
+
+poe_bot.bot_controls.keyboard_releaseKey('DIK_F')
+
+
+# In[ ]:
+
+
+"DIK_F" in poe_bot.bot_controls.keyboard.pressed
 

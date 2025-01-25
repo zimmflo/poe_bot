@@ -246,7 +246,7 @@ class AutoFlasks:
     self.pathfinder = pathfinder
     self.life_flask_recovers_es = life_flask_recovers_es
     self.utility_flasks_use_order_reversed = random.choice([True, False])
-
+    self.flask_delay = lambda: random.uniform(0.100,0.200)
   def useFlask(self, flask_index, flask_type = 'utility'):
     time_now = time.time()
     self.can_use_flask_after_by_type[flask_type] = time_now + random.randint(100,200)/1000
@@ -305,6 +305,7 @@ class AutoFlasks:
       health_component = poe_bot.game_data.player.life.energy_shield
     else:
       health_component = poe_bot.game_data.player.life.health
+    print(f"[AutoFlasks.useLifeFlask] {health_component.getPercentage()} {self.hp_thresh}")
     # life flask
     if self.pathfinder is True:
       # print(f'lifeflask pf')
@@ -345,7 +346,7 @@ class AutoFlasks:
     if len(poe_bot.game_data.player.mana_flasks) == 0:
       return False
     # mana flask
-    if poe_bot.game_data.player.life.mana.current / (poe_bot.game_data.player.life.mana.total - poe_bot.game_data.player.life.mana.reserved) < self.mana_thresh:
+    if poe_bot.game_data.player.life.mana.getPercentage() < self.mana_thresh:
       # if we already have mana flask
       if "flask_effect_mana" not in poe_bot.game_data.player.buffs and "flask_effect_mana_not_removed_when_full" not in poe_bot.game_data.player.buffs:
         if time.time() < self.can_use_flask_after_by_type[CONSTANTS.FLASKS.FLASK_TYPES.LIFE]:
@@ -877,6 +878,7 @@ class Build:
   poe_bot:PoeBot
   chaos_immune = False
   buff_skills:List[Skill] = []
+  restricted_mods:List[str] = []
   def __init__(self, poe_bot:PoeBot) -> None:
     self.poe_bot = poe_bot
     self.mover = self.poe_bot.mover
@@ -894,11 +896,14 @@ class Build:
       if buff.use() == True:
         return True
     return False
-
+  def useFlasks(self):
+    # smth to keep it alive, usually just enough to keep flasks,
+    # but smth like cwdt needs to use flasks + tap barrier button
+    self.auto_flasks.useFlasks()
 
   def staticDefence(self):
     poe_bot = self.poe_bot
-    self.auto_flasks.useFlasks()
+    self.useFlasks()
     mover = self.poe_bot.mover
     detection_range = 30
     danger_zones = list(filter(lambda e: e.distance_to_player < detection_range and any(list(map(lambda key: key in e.path, DANGER_ZONE_KEYS))), poe_bot.game_data.entities.all_entities ))
@@ -4701,8 +4706,8 @@ class KiteAroundBuild(Build):
 
 # poe2
 class DodgeRoll(SkillWithDelay):
-  def __init__(self, poe_bot, skill_index=3, skill_name='', display_name="DodgeRoll", min_delay=0.1, delay_random=0.1, min_mana_to_use=0, can_use_earlier=True):
-    super().__init__(poe_bot, skill_index, skill_name, display_name, min_delay, delay_random, min_mana_to_use, can_use_earlier)
+  def __init__(self, poe_bot:PoeBot):
+    super().__init__(poe_bot=poe_bot, skill_index=3, skill_name='', display_name="DodgeRoll", min_delay=0.1, delay_random=0.1, min_mana_to_use=0, can_use_earlier=True)
     self.skill_key = "DIK_SPACE"
     self.tap_func = poe_bot.bot_controls.keyboard.pressAndRelease
     self.press_func = poe_bot.bot_controls.keyboard_pressKey
