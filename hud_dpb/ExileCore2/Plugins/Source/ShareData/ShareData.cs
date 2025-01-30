@@ -1728,7 +1728,6 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
         }
 
 
-
         List<WorldMapEndGameMapObj> avaliable_maps  = new List<WorldMapEndGameMapObj>();
         var maps = atlas_panel_object.Descriptions;
         foreach (var tile in maps){
@@ -1737,13 +1736,16 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
             if ((mapElement.IsUnlocked == false && mapElement.IsVisited == true) || (mapElement.IsUnlocked == true && mapElement.IsVisited == false)){
                 can_run = true;
             }
-            if (can_run == false){
-                continue;
-            }
+            // if (can_run == false){
+            //     continue;
+            // }
             WorldMapEndGameMapObj map_obj = new WorldMapEndGameMapObj();
             map_obj.name = mapElement.Area.Name;
             map_obj.name_raw = mapElement.Area.Id;
-            map_obj.id = mapElement.Area.Index;
+            // map_obj.id = mapElement.Area.Index;
+            map_obj.id = (int)mapElement.IndexInParent;
+            
+            map_obj.can_run = can_run ? 1 : 0;
 
             var el_rect = mapElement.GetClientRect();
             map_obj.sz = new List<int> {
@@ -1792,6 +1794,7 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
                     (int)(activatebuttonreactangle.Y + activatebuttonreactangle.Height), 
                 };
 
+                map_device_info.pmw_t = place_map_window_element.Children[1].Children[0].Text;
 
 
 
@@ -1823,6 +1826,30 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
             }
             // running_iter += 1;
         }
+
+        // 0 6 579 0
+        var ziggurat_button_parent_element = GameController.IngameState.IngameUi.WorldMap.GetChildFromIndices([0,6]);
+        for (int running_iter = ziggurat_button_parent_element.Children.Count - 2; running_iter < ziggurat_button_parent_element.Children.Count; running_iter++){
+            var child_element = ziggurat_button_parent_element.Children[running_iter];
+            if (child_element.TextureName == "Art/Textures/Interface/2D/2DArt/UIImages/InGame/AtlasScreen/AtlasPlayerLocationBg.dds"){
+                map_device_info.z_b_sz = getListOfIntFromElRect(child_element);
+                break;
+            }
+        }
+        map_device_info.rg_sz = new List<List<int>>();
+        var all_map_elements = GameController.IngameState.IngameUi.WorldMap.AtlasPanel.Children;
+        foreach (var map_el in all_map_elements){
+            if (map_el.Height == 70 && map_el.Width == 90 && map_el.Children.Count == 1){
+                var map_el_child = map_el.Children[0];
+                if (map_el_child.X == 45 && map_el_child.Y == 5){
+                    map_device_info.rg_sz.Add(getListOfIntFromElRect(map_el));
+                    // break;
+                }
+            } 
+        }
+        // height width == 70 90
+        // and it has single child with X  == 45, y == 5
+
 
         return map_device_info;
 

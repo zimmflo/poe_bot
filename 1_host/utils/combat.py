@@ -4719,9 +4719,9 @@ class InfernalistZoomancer(Build):
   '''
   '''
   poe_bot: PoeBot
-  def __init__(self,poe_bot: PoeBot) -> None:
+  def __init__(self,poe_bot: PoeBot, can_kite = True) -> None:
     self.poe_bot = poe_bot
-    
+    self.can_kite = can_kite
     self.max_srs_count = 10
 
     flame_wall_internal_name = "firewall"
@@ -4842,7 +4842,6 @@ class InfernalistZoomancer(Build):
                 if self.detonate_dead.use(updated_entity=corpses_around[0], wait_for_execution=False) != False:
                   attack_skill_used = True
                   break
-                
           if self.minion_sniper_gas_arrow and self.minion_sniper_gas_arrow.canUse():
             if self.minion_sniper_gas_arrow.use(updated_entity=enemy_to_attack, wait_for_execution=False) == True:
               attack_skill_used = True
@@ -4860,12 +4859,18 @@ class InfernalistZoomancer(Build):
                 if self.unearth.use(updated_entity=corpses_around[0], wait_for_execution=False) != False:
                   attack_skill_used = True
                   break
-
-
+          if self.offering and self.offering.canUse():
+            offering_spikes = list(filter(lambda e: "Metadata/Monsters/OfferingSpike/PainOfferingSpike" in e.path, poe_bot.game_data.entities.all_entities))
+            if len(offering_spikes) == 0:
+              alive_skeletons_nearby = list(filter(lambda e: e.is_hostile == False and "Metadata/Monsters/Skeletons/PlayerSummoned/Skeleton", poe_bot.game_data.entities.all_entities))
+              if len(alive_skeletons_nearby) != 0:
+                if self.offering.use(updated_entity=alive_skeletons_nearby[0], wait_for_execution=False) != False:
+                  attack_skill_used = True
+                  break
         p0 = (mover.grid_pos_to_step_x, mover.grid_pos_to_step_y)
         p1 = (poe_bot.game_data.player.grid_pos.x, poe_bot.game_data.player.grid_pos.y)
         # cast first then move back
-        if len(nearby_enemies) > 1:
+        if self.can_kite and len(nearby_enemies) > 1:
           go_back_point = self.poe_bot.pather.findBackwardsPoint(p1, p0)
           poe_bot.mover.move(*go_back_point)
           return True

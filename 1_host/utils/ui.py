@@ -1234,7 +1234,7 @@ class MapDeviceMap(UiElement):
     self.name:str = raw['name']
     self.name_raw:str = raw['name_raw']
     self.icons:List[str] = raw['icons']
-
+    self.can_run = bool(raw["can_run"])
     self.is_boss = False
     self.is_breach = False
     self.is_expedition = False
@@ -1273,11 +1273,16 @@ class MapDevice_Poe2(MapDevice):
     self.world_map_is_opened = False
     self.is_opened = False
     self.avaliable_maps = []
+    self.all_maps = []
+    self.ziggurat_button:UiElement = None
+    self.special_maps:List[Posx1x2y1y2] = []
+
+
+    #TODO make a class for dropdown?
     self.place_map_window_opened = False
     self.place_map_window_screenzone:Posx1x2y1y2 = None
     self.place_map_window_activate_button_screen_zone:Posx1x2y1y2 = None
     self.place_map_window_items:List[MapDeviceItem] = []
-
   def update(self, updated_data=None):
     if updated_data == None:
       updated_data = self.poe_bot.backend.mapDeviceInfo()
@@ -1287,14 +1292,20 @@ class MapDevice_Poe2(MapDevice):
     self.is_opened:bool = updated_data['ap_o'] and self.world_map_is_opened
     if self.is_opened == False:
       return
-    self.avaliable_maps = list(map(lambda m_raw: MapDeviceMap(self.poe_bot, m_raw), updated_data["av_m"]))
+    self.all_maps = list(map(lambda m_raw: MapDeviceMap(self.poe_bot, m_raw), updated_data["av_m"]))
+    self.avaliable_maps = list(filter(lambda map: map.can_run,self.all_maps))
     self.place_map_window_opened = updated_data["pmw_o"]
     if self.place_map_window_opened:
       self.place_map_window_screenzone = Posx1x2y1y2(*updated_data["pmw_sz"])
       self.place_map_window_activate_button_screen_zone = Posx1x2y1y2(*updated_data["pmw_ab_sz"])
       self.activate_button_pos = self.place_map_window_activate_button_screen_zone
       self.place_map_window_items = list(map(lambda i_raw: MapDeviceItem(self.poe_bot, i_raw), updated_data["pmw_i"]))
-  
+      self.place_map_window_text = updated_data["pmw_t"]
+    if updated_data.get("z_b_sz", None) != None:
+      self.ziggurat_button = UiElement(self.poe_bot, Posx1x2y1y2(*updated_data["z_b_sz"]))
+    if updated_data.get("rg_sz", None) != None:
+      list(map(lambda el: self.special_maps.append(Posx1x2y1y2(*el)), updated_data["rg_sz"]))
+    
   def checkIfActivateButtonIsActive(self):
 
     poe_bot = self.poe_bot
@@ -1331,7 +1342,6 @@ class MapDevice_Poe2(MapDevice):
     # print(sorted_img[sorted_img != 0])
     print(f"activate_button_is_active {activate_button_is_active}")
     return activate_button_is_active
-
   def getRoi(self):
     poe_bot = self.poe_bot
     poe_bot.ui.inventory.update()
@@ -1383,7 +1393,6 @@ class MapDevice_Poe2(MapDevice):
       time.sleep(random.uniform(0.15, 0.35))
     
     return map_obj
-
   def open(self):
     def getMapDeviceEntity():
       return next( (e for e in self.poe_bot.game_data.entities.all_entities if "MapDevice" in e.path), None)
@@ -1735,7 +1744,13 @@ class Stash:
       raise Exception('.self.temp is None')
     self.open()
     self.temp.unsorted_items = []
-    tab_order = [x for x in range(self.total_stash_tab_count)]
+    can_check_tabs = self.total_stash_tab_count
+    if can_check_tabs > 4:
+      print(f'[Stash.updateStashTemp] will check only 5 tabs out of {self.total_stash_tab_count}')
+      can_check_tabs = 5
+
+
+    tab_order = [x for x in range(can_check_tabs)]
     tab_order.pop(tab_order.index(self.current_tab_index))
     random.shuffle(tab_order)
     # 0 tab here

@@ -470,6 +470,10 @@ class SimulacrumTempData(TempSkeleton):
     self.wave_start_time = time.time()
     self.save()
 
+class SimulacrumCache2(SimulacrumTempData):
+  filename = 'simulacrum2.json'
+  temp_name_for_display = 'SimulacrumCache2'
+
 class FollowerTempData(TempSkeleton):
   # TODO supposed to be part of global temp, smth like temp["simulacrum"]
   filename = 'follower.json'

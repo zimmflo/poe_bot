@@ -358,6 +358,7 @@ public class WorldMapEndGameMapObj
     public string name { get; set; }
     public string name_raw { get; set; }
     public List<string> icons { get; set; }
+    public int can_run { get; set; }
 }
 
 public class GetMapDeviceInfoObject
@@ -367,8 +368,12 @@ public class GetMapDeviceInfoObject
     public List<WorldMapEndGameMapObj> av_m { get; set; } // avaliable_maps
     public bool pmw_o { get; set; } // place_map_window_opened
     public List<int> pmw_sz { get; set; } // place_map_window_screenzone
+    public string pmw_t { get; set; } // place_map_window_ text
     public List<InventoryObjectCustom_c> pmw_i { get; set; } // place_map_window_items
     public List<int> pmw_ab_sz { get; set; } // place map window activatte button screenzone
+    public List<int> z_b_sz { get; set; } // ziggurat button screenzone
+    public List<List<int>> rg_sz { get; set; } // realmgate screenzones
+
 
 
 

@@ -418,7 +418,7 @@ class Terrain:
         furthest_unvisited = point
     grid_pos_to_go_y, grid_pos_to_go_x = furthest_unvisited[0], furthest_unvisited[1]
     return [grid_pos_to_go_x, grid_pos_to_go_y]
-  def getCurrentlyPassableArea(self):
+  def getCurrentlyPassableArea(self, dilate_kernel_size = 10):
     '''
     generates a passable zone for current area
     - returns
@@ -433,9 +433,9 @@ class Terrain:
     # eroded = cv2.erode(terrain_image,kernel ,iterations = 1)
     # dilated = cv2.dilate(eroded,kernel ,iterations = 1)
     # ret, currently_passable = cv2.threshold(cv2.convertScaleAbs(dilated),0,1,cv2.THRESH_BINARY)
-
-    kernel = np.ones((10,10), int)
-    all_passable = cv2.dilate(all_passable,kernel ,iterations = 1)
+    if dilate_kernel_size > 0:
+      kernel = np.ones((10,10), int)
+      all_passable = cv2.dilate(all_passable,kernel ,iterations = 1)
     # plt.imshow(all_passable);plt.show()
     ret, currently_passable_dilated = cv2.threshold(cv2.convertScaleAbs(all_passable),0,1,cv2.THRESH_BINARY)
     # plt.imshow(currently_passable_dilated);plt.show()
@@ -926,6 +926,7 @@ class GameData:
   # flasks:Flasks
   player_pos:PosXY
   player_life:Life
+  last_update_time = 0.
   def __init__(self, poe_bot:PoeBot) -> None:
     self.poe_bot = poe_bot
     self.terrain = Terrain(self.poe_bot)
@@ -940,7 +941,7 @@ class GameData:
   def update(self, refreshed_data:dict, refresh_visited=False):
     if refreshed_data['terrain_string'] is not None:
       self.terrain.update(refreshed_data=refreshed_data, refresh_visited=refresh_visited)
-
+    self.last_update_time = time.time()
     # self.flasks.update(refreshed_data=refreshed_data["s"])
     if refreshed_data['f'] is not None:
       self.player.all_flasks = []

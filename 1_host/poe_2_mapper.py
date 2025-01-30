@@ -52,8 +52,8 @@ MAPS_TO_IGNORE = [
   "MapCrypt", # activators
   "MapAugury_NoBoss", # activators
   "MapAugury", # activators
-  "MapFortress", #TODO class MapFortress boss activators
-  
+  "MapFortress", #TODO class MapForptress boss activators
+
   "MapLostTowers", # class MapLostTowers multi layerd location
   "MapBluff", # tower
   "MapMesa", # tower
@@ -850,7 +850,7 @@ alch_map_if_possible = True
 
 
 
-# In[4]:
+# In[ ]:
 
 
 default_config = {
@@ -896,7 +896,7 @@ force_reset_temp = config['force_reset_temp']
 print(f'running aqueduct using: REMOTE_IP: {REMOTE_IP} unique_id: {UNIQUE_ID} max_lvl: {MAX_LVL} chromatics_recipe: {CHROMATICS_RECIPE} force_reset_temp: {force_reset_temp}')
 
 
-# In[5]:
+# In[ ]:
 
 
 poe_bot = Poe2Bot(unique_id = UNIQUE_ID, remote_ip = REMOTE_IP, password=password)
@@ -927,7 +927,7 @@ poe_bot.mover.setMoveType('wasd')
 
 
 
-# In[7]:
+# In[ ]:
 
 
 from utils.combat import Build, SkillWithDelay, DodgeRoll
@@ -1037,9 +1037,14 @@ class BarrierInvocationInfernalist(Build):
 
     self.dodge = DodgeRoll(self.poe_bot)
 
+  def getDemonFormStacks(self):
+    poe_bot = self.poe_bot
+    return len(list(filter(lambda b: b == "demon_form_buff", poe_bot.game_data.player.buffs)))
+
   def useFlasks(self):
     poe_bot = self.poe_bot
     buffs = poe_bot.game_data.player.buffs
+    # self.cwdt_loop.keep_alive(0.33)
     is_ignited = "ignited" in buffs
     is_in_demon_form = "demon_form_spell_gem_buff" in buffs
     is_barrier_charged = "invocation_skill_ready" in buffs
@@ -1070,7 +1075,7 @@ class BarrierInvocationInfernalist(Build):
         self.curse.use()
         # self.barrier_charged_at = time.time()
       else:
-        self.barrier_invocation_key_holder.holdFor(0.35)
+        self.barrier_invocation_key_holder.holdFor(0.33)
         if is_barrier_charged == True:
           self.barrier_charged_at = time.time()
     else:
@@ -1083,7 +1088,9 @@ class BarrierInvocationInfernalist(Build):
     nearby_enemies = list(filter(lambda e: e.isInRoi() and e.isInLineOfSight(), poe_bot.game_data.entities.attackable_entities))
     pos_x_to_go, pos_y_to_go = mover.nearest_passable_point[0], mover.nearest_passable_point[1]
     if len(nearby_enemies) != 0:
-      nearby_enemies.sort(key=lambda e: e.distance_to_player)
+      list(map(lambda e:e.calculateValueForAttack(), nearby_enemies))
+      nearby_enemies.sort(key=lambda e: e.attack_value, reverse=True)
+      # nearby_enemies.sort(key=lambda e: e.distance_to_player)
       nearby_enemies[0].hover(wait_till_executed=False)
     else:
       # move mouse towards direction
@@ -1140,13 +1147,13 @@ class BarrierInvocationInfernalist(Build):
       if entity_to_kill.isInRoi() == False or entity_to_kill.isInLineOfSight() == False:
         print('[build.killUsual] getting closer in killUsual ')
         break
-
       skill_used = self.useBuffs()
       entity_to_kill.hover()
       if entity_to_kill.distance_to_player > keep_distance:
         print('[build.killUsual] kiting around')
         point = self.poe_bot.game_data.terrain.pointToRunAround(entity_to_kill.grid_position.x, entity_to_kill.grid_position.y, kite_distance+random.randint(-1,1), check_if_passable=True, reversed=reversed_run)
         poe_bot.mover.move(grid_pos_x = point[0], grid_pos_y = point[1])
+        self.dodge.use(wait_for_execution=False)
       else:
         print('[build.killUsual] kiting away')
         p0 = (entity_to_kill.grid_position.x, entity_to_kill.grid_position.y)
@@ -1169,7 +1176,7 @@ poe_bot.combat_module.build = BarrierInvocationInfernalist(poe_bot)
 poe_bot.mover.default_continue_function = poe_bot.combat_module.build.usualRoutine
 
 
-# In[9]:
+# In[ ]:
 
 
 mapper_settings = MapperSettings({})
@@ -1178,7 +1185,7 @@ mapper_settings.do_rituals = True
 # mapper_settings.do_rituals_buyout_function = 
 
 
-# In[10]:
+# In[ ]:
 
 
 mapper = Mapper2(poe_bot=poe_bot, settings = mapper_settings)
@@ -1212,6 +1219,8 @@ def isItemHasPickableKey(item_label:PickableItemLabel):
     return True
   elif "Art/2DItems/Currency/Essence/" in item_label.icon_render:
     return True
+  elif "Art/2DItems/Currency/DistilledEmotions" in item_label.icon_render:
+    return True
   return False
 
 if mapper.settings.waystone_upgrade_to_rare:
@@ -1221,7 +1230,7 @@ if mapper.settings.waystone_upgrade_to_rare:
 poe_bot.loot_picker.loot_filter.special_rules = [isItemHasPickableKey]
 
 
-# In[12]:
+# In[ ]:
 
 
 #TODO make it possible to wrap it into while loop, if ok, move whole mapper to utils/mapper2.py
@@ -1240,7 +1249,7 @@ raise Exception('Script ended, restart')
 # testing below, wont be executed, debugging only
 
 
-# In[15]:
+# In[ ]:
 
 
 poe_bot.refreshAll()
@@ -1766,50 +1775,348 @@ energy_gain = (trigger_cost/5) * (1+barrier_meta_gain/100)
 print(energy_gain)
 
 
-# In[52]:
+# In[ ]:
 
 
 poe_bot.refreshAll()
 
 
-# In[53]:
-
-
-
-
-
-# In[54]:
-
-
-bd.barrier_invocation.skill_key
-
-
 # In[13]:
+
+
+import matplotlib.pyplot as plt 
+from utils.utils import getFourPoints
+from utils.utils import createLineIteratorWithValues
+
+
+# In[30]:
+
+
+poe_bot.loot_picker.loot_filter.special_rules = []
+
+
+# In[ ]:
 
 
 poe_bot.refreshAll()
 poe_bot.bot_controls.disconnect()
 
 
-# In[14]:
+# In[17]:
+
+
+interesting_entities = []
+interesting_entities_ids = []
+class Simulacrum:
+  def __init__(self, poe_bot:Poe2Bot):
+    self.poe_bot = poe_bot
+
+  def scanForInterestingEntities(self, *args, **kwargs):
+    for entity in self.poe_bot.game_data.entities.all_entities:
+      if entity.id in interesting_entities_ids:
+        continue
+      # doors
+      if "Metadata/Terrain/Gallows/Leagues/Delirium/Objects/Act1Doors/DeliriumDoorArena" in entity.path:
+        print(f'found door {entity.raw}')
+        interesting_entities.append(entity)
+        interesting_entities_ids.append(entity.id)
+      
+
+    return False
+  def getTargetableAfflictionator(self):
+    return next( (e for e in self.poe_bot.game_data.entities.all_entities if e.is_targetable == True and e.path == "Metadata/Terrain/Gallows/Leagues/Delirium/Act1Town/Objects/DeliriumnatorAct1"), None)
+  
+  def clickAfflictionatorTillNotTargetable(self, afflictionator_entity:Entity):
+    #TODO flasks and keep cwdt loop
+    afflictionator_entity.clickTillNotTargetable()
+
+  def activateWave(self):
+    afflictionator_entity = self.getTargetableAfflictionator()
+    if afflictionator_entity:
+      poe_bot.mover.goToEntitysPoint(afflictionator_entity, release_mouse_on_end=True, custom_break_function=self.scanForInterestingEntities)
+      self.clickAfflictionatorTillNotTargetable(afflictionator_entity)
+      print(f'activated')
+
+  def isWaveRunning(self):
+    poe_bot = self.poe_bot
+    if len(poe_bot.game_data.entities.attackable_entities) != 0:
+      print('true cos attackable entities')
+      return True
+    if len(poe_bot.loot_picker.loot_filter.getPickableItems()) != 0:
+      print('false bcs items are visible')
+      return False
+    if self.getTargetableAfflictionator() != None:
+      print('false, cos afflictionator is targetable')
+      return False
+    return True
+
+simulacrum = Simulacrum(poe_bot=poe_bot)
+
+
+# In[ ]:
+
+
+simulacrum.scanForInterestingEntities()
+
+
+# In[ ]:
+
+
+poe_bot.refreshAll()
+plt.imshow(poe_bot.pather.terrain_for_a_star);plt.show()
+
+# shut the doors
+for interesting_entitiy in interesting_entities:
+  print(f"closing door {interesting_entitiy.raw}")
+  poe_bot.game_data.terrain.passable[interesting_entitiy.grid_position.y-25:interesting_entitiy.grid_position.y+25, interesting_entitiy.grid_position.x-25:interesting_entitiy.grid_position.x+25] = 0
+
+poe_bot.game_data.terrain.getCurrentlyPassableArea(dilate_kernel_size=0)
+plt.imshow(poe_bot.game_data.terrain.currently_passable_area);plt.show()
+
+poe_bot.pather.terrain_for_a_star[poe_bot.game_data.terrain.currently_passable_area != 1] = 65534
+plt.imshow(poe_bot.pather.terrain_for_a_star);plt.show()
+
+
+# In[ ]:
+
+
+simulacrum.activateWave()
+
+
+# In[ ]:
+
+
+poe_bot.refreshAll()
+plt.imshow(poe_bot.game_data.terrain.terrain_image);plt.show()
+plt.imshow(poe_bot.game_data.terrain.passable);plt.show()
+# shut the doors
+for interesting_entitiy in interesting_entities:
+  poe_bot.game_data.terrain.passable[interesting_entitiy.grid_position.y-25:interesting_entitiy.grid_position.y+25, interesting_entitiy.grid_position.x-25:interesting_entitiy.grid_position.x+25] = 0
+
+poe_bot.game_data.terrain.getCurrentlyPassableArea(dilate_kernel_size=0)
+plt.imshow(poe_bot.game_data.terrain.currently_passable_area);plt.show()
+
+
+# In[ ]:
+
+
+arena_center = poe_bot.pather.utils.getCenterOf(poe_bot.game_data.terrain.currently_passable_area)
+print(f'arena center {arena_center}')
+
+points = getFourPoints(*arena_center, 70)
+
+run_points = []
+
+for point in points[1:]:
+  passable_point = poe_bot.game_data.terrain.checkIfPointPassable(*point)
+  print(f'{point} {passable_point}')
+  if passable_point:
+    run_points.append(point)
+
+plt.imshow(poe_bot.game_data.terrain.currently_passable_area[arena_center[1]-75:arena_center[1]+75, arena_center[0]-75:arena_center[0]+75]);plt.show()
+
+
+
+# In[ ]:
+
+
+wave_started_at = time.time()
+is_wave_running = True
+while is_wave_running:
+  for point in run_points:
+    poe_bot.mover.goToPoint(point,release_mouse_on_end=False)
+    if time.time() + 10 > wave_started_at:
+      is_wave_running = simulacrum.isWaveRunning()
+    if is_wave_running == False:
+      break
+    print(f'wave running status {is_wave_running}')
+print(f'completed')
+
+
+# In[20]:
+
+
+poe_bot.refreshAll()
+
+
+# In[22]:
 
 
 while True:
   poe_bot.refreshInstanceData()
   poe_bot.combat_module.build.useFlasks()
+  # ('stacks count: {poe_bot.combat_module.build.getDemonFormStacks()}')
+
+
+# In[ ]:
+
+
+wave_started_at = time.time()
+is_wave_running = True
+while is_wave_running:
+  poe_bot.refreshInstanceData()
+  poe_bot.combat_module.build.useFlasks()
+  if time.time() + 10 > wave_started_at:
+    is_wave_running = simulacrum.isWaveRunning()
+  print(f'wave running status {is_wave_running}')
+  # ('stacks count: {poe_bot.combat_module.build.getDemonFormStacks()}')
+
+
+# In[23]:
+
+
+while True:
+  poe_bot.refreshAll()
+  # plt.imshow(poe_bot.pather.terrain_for_a_star);plt.show()
+
+  poe_bot.game_data.terrain.getCurrentlyPassableArea(dilate_kernel_size=0)
+  plt.imshow(poe_bot.game_data.terrain.currently_passable_area);plt.show()
+
+  poe_bot.pather.terrain_for_a_star[poe_bot.game_data.terrain.currently_passable_area != 1] = 65534
+
+  simulacrum.activateWave()
+  # plt.imshow(poe_bot.pather.terrain_for_a_star);plt.show()
+  poe_bot.refreshAll()
+  # plt.imshow(poe_bot.game_data.terrain.terrain_image);plt.show()
+  plt.imshow(poe_bot.game_data.terrain.passable);plt.show()
+  # shut the doors
+  for interesting_entitiy in interesting_entities:
+    poe_bot.game_data.terrain.passable[interesting_entitiy.grid_position.y-25:interesting_entitiy.grid_position.y+25, interesting_entitiy.grid_position.x-25:interesting_entitiy.grid_position.x+25] = 0
+
+  poe_bot.game_data.terrain.getCurrentlyPassableArea(dilate_kernel_size=0)
+  plt.imshow(poe_bot.game_data.terrain.currently_passable_area);plt.show()
+
+  arena_center = poe_bot.pather.utils.getCenterOf(poe_bot.game_data.terrain.currently_passable_area)
+  print(f'arena center {arena_center}')
+
+  points = getFourPoints(*arena_center, 70)
+
+
+  run_points = []
+
+  for point in points[1:]:
+    line_vals = createLineIteratorWithValues(arena_center, point, poe_bot.game_data.terrain.currently_passable_area)
+    last_point = arena_center
+    # print(line_vals)
+    for line_point in line_vals[10:]:
+      if line_point[-1] != 1.:
+        print(line_point)
+        break
+      last_point = line_point
+    run_points.append([int(last_point[0]), int(last_point[1])])
+    # passable_point = poe_bot.game_data.terrain.checkIfPointPassable(*point)
+
+    print(f'{point} {run_points[-1]}')
+
+  plt.imshow(poe_bot.game_data.terrain.currently_passable_area[arena_center[1]-75:arena_center[1]+75, arena_center[0]-75:arena_center[0]+75]);plt.show()
+
+
+  wave_started_at = time.time()
+  is_wave_running = True
+  while is_wave_running:
+    for point in run_points:
+      poe_bot.mover.goToPoint(point,release_mouse_on_end=False)
+      if time.time() + 10 > wave_started_at:
+        is_wave_running = simulacrum.isWaveRunning()
+      if is_wave_running == False:
+        break
+      print(f'wave running status {is_wave_running}')
+
+  poe_bot.refreshInstanceData()
+  poe_bot.loot_picker.collectLootWhilePresented()
+
+  print(f'wave completed')
+
+
+
+
+# In[ ]:
+
+
+plt.imshow(poe_bot.game_data.terrain.currently_passable_area);plt.show()
+plt.imshow(poe_bot.game_data.terrain.currently_passable_area[1034-50:1034+50,311-50:311+50 ]);plt.show()
+
+
+# In[ ]:
+
+
+plt.imshow(poe_bot.game_data.terrain.currently_passable_area);plt.show()
+
+
+# In[ ]:
+
+
+print(arena_center)
+
+
+points = getFourPoints(*arena_center, 70)
+
+run_points = []
+
+for point in points[1:]:
+  line_vals = createLineIteratorWithValues(arena_center, point, poe_bot.game_data.terrain.currently_passable_area)
+  last_point = arena_center
+  # print(line_vals)
+  for line_point in line_vals[10:]:
+    if line_point[-1] != 1.:
+      print(line_point)
+      break
+    last_point = line_point
+  run_points.append([int(last_point[0]), int(last_point[1])])
+  # passable_point = poe_bot.game_data.terrain.checkIfPointPassable(*point)
+
+  print(f'{point} {run_points[-1]}')
+  # if passable_point:
+  #   run_points.append(point)
+
+
+# In[ ]:
+
+
+for point in run_points:
+  poe_bot.mover.goToPoint(point,release_mouse_on_end=False, custom_continue_function=lambda *args, **kwargs: False)
 
 
 # In[ ]:
 
 
 press_func = poe_bot.bot_controls.keyboard_pressKey
-release_func = poe_bot.bot_controls.keyboard_releaseKey
+release_func = poe_bot.bot_controls.keyboacrd_releaseKey
 
 
 # In[ ]:
 
 
+poe_bot.refreshAll()
 
+
+# In[ ]:
+
+
+plt.imshow(poe_bot.game_data.terrain.terrain_image)
+
+
+# In[ ]:
+
+
+poe_bot.refreshAll()
+plt.imshow(poe_bot.game_data.terrain.terrain_image)
+
+
+# In[ ]:
+
+
+# activate wave
+
+
+# In[ ]:
+
+
+poe_bot.refreshAll()
+poe_bot.game_data.terrain.getCurrentlyPassableArea(dilate_kernel_size=0)
+plt.imshow(poe_bot.game_data.terrain.currently_passable_area);plt.show()
+points = poe_bot.pather.tsp.generatePointsForDiscovery()
+print(points)
 
 
 # In[ ]:
