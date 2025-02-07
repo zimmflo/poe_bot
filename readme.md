@@ -2,13 +2,15 @@
 - these are leftovers from poe1 adapted to run for poe2. Basically, smth what was used to bot maps in poe1
 
 ## goals
+- hud plugin to a tcp sockets (0_guest like)
+- seperated thread for refreshInstanceData 
 <!-- - mapdeivce2 rewrite dragtomapobject -->
 - either ingame lootfilter or more accurate pickup or force sell to vendor everything outside of loot picker 
-- vaal maps if possible
+<!-- - vaal maps if possible -->
 - recycle maps for higher tier
 - make it buy/reroll/defer items from ritual with some logic
-- towers
-- apply deli to maps
+<!-- - towers -->
+<!-- - apply deli to maps -->
 <!-- - migrate and adapt QuestArea cpass from 1_host/quest.py for poe2 mapper -->
 <!-- - migrate and adapt Mapper class from 1_host/maps.py for poe2 mapper -->
 - rewrite 1_host/utils/combat.py
