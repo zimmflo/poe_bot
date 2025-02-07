@@ -23,6 +23,11 @@
 !hud_dpb/ExileApi/Core/Plugins/ShareData/**
 
 # poe 2 hud
+!hud_dpb/
+!hud_dpb/ExileCore2/
+!hud_dpb/ExileCore2/Plugins/
+!hud_dpb/ExileCore2/Plugins/Compiled/
+!hud_dpb/ExileCore2/Plugins/Compiled/ShareData/
 !hud_dpb/ExileCore2/Plugins/Compiled/ShareData/**
 !hud_dpb/ExileCore2/Plugins/Source/ShareData/**
 
