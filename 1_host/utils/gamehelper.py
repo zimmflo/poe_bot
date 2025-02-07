@@ -869,6 +869,7 @@ class Skills:
     self.can_use_skills_indexes_raw = [1 for i in range(14)]
     self.cast_time = [0 for i in range(14)]
     self.internal_names:List[str] = []
+    self.total_uses:list[int] = []
     self.descriptions:List[dict] = []
   def update(self, refreshed_data:dict = None):
     if refreshed_data is None:
@@ -888,6 +889,8 @@ class Skills:
       self.internal_names = refreshed_data["i_n"]
     if refreshed_data['d']:
       self.descriptions = refreshed_data['d']
+    if refreshed_data['tu']:
+      self.total_uses = refreshed_data['tu']
 class CompletedAtlasMaps:
   def __init__(self, poe_bot:PoeBot) -> None:
     self.poe_bot = poe_bot

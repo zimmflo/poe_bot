@@ -87,6 +87,8 @@ class Item:
     if self.map_tier != 0 and self.map_tier != 17:
       return 'map'
     return None
+  def getDeliriumMods(self):
+    return list(filter(lambda mod_raw: "InstilledMapDelirium" in mod_raw, self.item_mods_raw))
 class StashItem(Item):
   def __init__(self, poe_bot: PoeBot, item_raw: dict, tab_index:int = None) -> None:
     super().__init__(poe_bot, item_raw)
@@ -168,6 +170,7 @@ class Ui:
     self.incursion_ui = IncursionUi(poe_bot=poe_bot)
     self.escape_control_panel = EscapeControlPanel(poe_bot=poe_bot)
     self.ritual_ui = RitualUi(poe_bot=poe_bot)
+    self.anoint_ui = AnointUi(poe_bot=poe_bot)
   def closeAll(self):
     bot_controls = self.poe_bot.bot_controls
     self.stash.is_opened = False
@@ -178,13 +181,21 @@ class Ui:
   def update(self, refreshed_data = None):
     if refreshed_data is None:
       refreshed_data = self.poe_bot.backend.getWorldMapUi()
-  def clickMultipleItems(self, items_to_click:List[Item], hold_ctrl=True, add_delay_before_last_clicks = True, skip_items = True, shuffle_items = True, random_sleep = True, mouse_speed_mult = 2):
+  def clickMultipleItems(self, items_to_click:List[Item], hold_ctrl=True, add_delay_before_last_clicks = True, skip_items = True, shuffle_items = True, random_sleep = True, mouse_speed_mult = 2, hold_shift=False):
     bot_controls = self.poe_bot.bot_controls
+    def holdButtons():
+      if hold_ctrl: self.poe_bot.bot_controls.keyboard_pressKey('DIK_LCONTROL')
+      if hold_ctrl and hold_shift: time.sleep(random.uniform(0.05, 0.10))
+      if hold_shift: self.poe_bot.bot_controls.keyboard_pressKey('DIK_LSHIFT')
+    def releaseButtons():
+      if hold_ctrl is True:bot_controls.keyboard_releaseKey('DIK_LCONTROL')
+      if hold_ctrl and hold_shift: time.sleep(random.uniform(0.05, 0.10))
+      if hold_shift is True:bot_controls.keyboard_releaseKey('DIK_LSHIFT')
     print(f'[ui, ] click multiple call at {time.time()}')
     if len(items_to_click) == 0:
       return
     items = items_to_click.copy()
-    if hold_ctrl is True:bot_controls.keyboard_pressKey('DIK_LCONTROL')
+    holdButtons()
     if shuffle_items:
       items = items_to_click.copy()
       shuffle_by_x_axis = random.choice([True, False])
@@ -278,20 +289,15 @@ class Ui:
         sleep_time += self.poe_bot.afk_temp.performShortSleep(return_sleep_val=True)
         print(f'[ui, click multiple] sleep_time {sleep_time}')
         if sleep_time != 0:
-          if hold_ctrl: 
-            time.sleep(random.randint(1,5)/100)
-            self.poe_bot.bot_controls.keyboard_releaseKey('DIK_LCONTROL')
-            time.sleep(random.randint(1,5)/100)
+          releaseButtons()
           time.sleep(sleep_time)
-          if hold_ctrl: 
-            self.poe_bot.bot_controls.keyboard_pressKey('DIK_LCONTROL')
-            time.sleep(random.randint(1,5)/100)
+          holdButtons()
         if random.randint(1,100000) == 1:
           print(f'random sleep random.randint(1,100000) == 1')
           time.sleep(random.randint(5,15))
       self.poe_bot.ui.last_clicked_ui_element_pos = item_screen_pos
       if random.randint(1,10) == 1:
-        time.sleep(random.randint(3,7)/10)
+        time.sleep(random.uniform(0.30,0.65))
     if add_delay_before_last_clicks:
       time.sleep(random.randint(20,80)/100)
       time.sleep(random.randint(20,80)/100)
@@ -300,7 +306,7 @@ class Ui:
       item = items[item_index]
       item.click(can_click_multiple_times=1, mouse_speed_mult = int(mouse_speed_mult*1.5))
       time.sleep(random.randint(20,80)/100)
-    if hold_ctrl is True:bot_controls.keyboard_releaseKey('DIK_LCONTROL')
+    releaseButtons()
 class Ui2(Ui):
   map_device:MapDevice_Poe2
   def __init__(self, poe_bot):
@@ -1044,6 +1050,51 @@ class BanditDialogue:
     raw_data = self.poe_bot.backend.getBanditDialogueUi()
     self.raw = raw_data
     return raw_data
+
+class AnointUi(PoeBotComponent):
+  def __init__(self, poe_bot):
+    super().__init__(poe_bot)
+    self.reset()
+  def reset(self):
+    self.visible = False
+    self.screen_zone:Posx1x2y1y2
+    self.oils:List[Item] = []
+    self.placed_items:List[Item] = []
+    self.anoint_button:UiElement = None
+    self.anoint_button_screen_zone:Posx1x2y1y2 = None
+    self.texts:List[str] = []
+  def update(self, data:dict = None):
+    self.reset()
+    if data == None:
+      data = self.poe_bot.backend.getAnointUi()
+    self.visible = bool(data['v'])
+    if self.visible == False:
+      return
+    self.screen_zone = Posx1x2y1y2(*data['sz'])
+    self.oils = list(map(lambda item_raw: Item(self.poe_bot, item_raw), data['o']))
+    self.placed_items = list(map(lambda item_raw: Item(self.poe_bot, item_raw), data['pi']))
+    self.anoint_button_screen_zone = Posx1x2y1y2(*data['a_b_sz'])
+    self.anoint_button = UiElement(self.poe_bot, self.anoint_button_screen_zone)
+    self.texts = data['t']
+  def open(self, consumable:InventoryItem):
+    self.update()
+    if self.visible == True:
+      return
+    consumable.click(button="right")
+    time.sleep(random.uniform(0.30, 0.60))
+    self.update()
+    if self.visible == False:
+      self.poe_bot.raiseLongSleepException(f'cant open anoint ui via item {consumable.raw}')
+  def anointItem(self, item:InventoryItem, consumables:List[InventoryItem]):
+    anoint_ui = self
+    anoint_ui.open(consumables[0])
+    item.click(hold_ctrl=True)
+    time.sleep(random.uniform(0.30, 0.60))
+    self.poe_bot.ui.clickMultipleItems(consumables, hold_ctrl=True, random_sleep=False, skip_items=False)
+    anoint_ui.anoint_button.click()
+    anoint_ui.update()
+    anoint_ui.placed_items[0].click(hold_ctrl=True)
+  
 class MapDevice:
   poe_bot:PoeBot
   activate_button_pos:Posx1x2y1y2
@@ -1827,7 +1878,7 @@ class Stash:
         all_slots.append([x,y])
     filled_slots = self.getFilledSlots()
     return list(filter(lambda slot: not slot in filled_slots, all_slots))
-  def placeItemsAcrossStash(self, items_to_stash:List[Item]):
+  def placeItemsAcrossStash(self, items_to_stash:List[Item], can_sleep = True):
     print(f'placing items across the stash')
     self.open()
     stash_tabs_indexes_sorted = [i for i in range(1,4)]
@@ -1873,7 +1924,7 @@ class Stash:
           break
         items_to_stash_in_current_tab.append(items_to_stash.pop(0))
       print(f'placing {len(items_to_stash_in_current_tab)} items in current stash tab')
-      self.poe_bot.ui.clickMultipleItems(items_to_stash_in_current_tab)
+      self.poe_bot.ui.clickMultipleItems(items_to_stash_in_current_tab, add_delay_before_last_clicks=can_sleep, skip_items=can_sleep, random_sleep=can_sleep)
       if stashed_all is True:
         break
     if stashed_all is False:

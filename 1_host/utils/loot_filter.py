@@ -76,19 +76,18 @@ class LootPicker:
     print(f'[LootPicker.collectLoot] going to collect loot near {pickable_item}')
     poe_bot.last_action_time = 0
     # print(f'#collectLoot d at {time.time()}')
-    if dist( (poe_bot.game_data.player.grid_pos.x, poe_bot.game_data.player.grid_pos.y), (pickable_item.grid_position.x, pickable_item.grid_position.y) ) > 21:
+    if dist( (poe_bot.game_data.player.grid_pos.x, poe_bot.game_data.player.grid_pos.y), (pickable_item.grid_position.x, pickable_item.grid_position.y) ) > 19:
       print('going closer to loot')
       self.poe_bot.mover.goToPoint(
         point=(pickable_item.grid_position.x, pickable_item.grid_position.y),
         custom_continue_function=poe_bot.combat_module.build.usualRoutine, 
         release_mouse_on_end=True, 
-        min_distance=35,
+        min_distance=20,
         step_size=random.randint(30,35)
       )
     else:
-      if self.poe_bot.bot_controls.mouse_pressed['left'] is True:
-        print('already close enough to loot')
-        self.poe_bot.bot_controls.mouse.release(button='left')
+      self.poe_bot.mover.stopMoving()
+      print('already close enough to loot')
     # print(f'#collectLoot e at {time.time()}')
     # print(f'stopped, clearing nearby {pickable_item}')
     # poe_bot.combat_module.clearLocationAroundPoint(point_to_run_around)

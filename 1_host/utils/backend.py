@@ -7,6 +7,8 @@ import time
 from datetime import datetime
 import random
 import _thread
+import socket
+
 
 
 import requests as req
@@ -26,6 +28,8 @@ class Backend():
   
   def __init__(self, poe_bot:PoeBot, port:int = 50006) -> None:
     self.poe_bot = poe_bot
+    self.port = port
+    self.endpoint_ip = poe_bot.remote_ip
     self.endpoint = f"http://{poe_bot.remote_ip}:{port}"
     self.debug = poe_bot.debug
  
@@ -67,6 +71,12 @@ class Backend():
     url = f'{self.endpoint}/getUltimatumNextWaveUi'
     data = self.doRequestTillGetJson(url)
     if self.debug: print(f'#getUltimatumNextWaveUi return {time.time()}')
+    return data
+  def getAnointUi(self):
+    if self.debug: print(f'#getAnointUi call {time.time()}')
+    url = f'{self.endpoint}/getAnointUi'
+    data = self.doRequestTillGetJson(url)
+    if self.debug: print(f'#getAnointUi return {time.time()}')
     return data
   def getNpcDialogueUi(self):
     f = "getNpcDialogueUi"
@@ -335,4 +345,66 @@ class Backend():
     data = self.doRequestTillGetJson(url)
     if self.debug: print(f'#getPartyInfo return {time.time()}')
     return data
-  
+
+class ExCore2Sockets(Backend):
+  def __init__(self, poe_bot, port = 50006):
+    super().__init__(poe_bot, port)
+    self.sending = False
+    self.connected = False
+    self.connect()
+  def connect(self):
+    if self.connected != False:
+      return
+    print(f'[ExCore2Sockets.connect] establishing connection with {(self.endpoint_ip, self.port)}')
+    self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    self.s.settimeout(5)
+    try:
+      self.s.connect((self.host, self.port))
+      if self.debug: print(f'[ExCore2Sockets.connect] established connection with {(self.endpoint_ip, self.port)}')
+      self.connected = True
+    except socket.error:
+      text = f'[ExCore2Sockets.connect] established connection with {self.endpoint_ip}, maybe hud with plugin on guest isnt launched? or ip is wrong'
+      print(text)
+      print(text)
+      print(text)
+      print(text)
+      print(text)
+      print(text)
+      print(text)
+      print(text)
+      print(text)
+      print(text)
+      raise Exception(text)
+
+  def sendCommandToRecieveBytes(self, command:str, recv_buffer_size = 4):
+    i_count = 0
+    # while self.sending:
+    #   time.sleep(0.001)
+    #   if self.debug: print(f'[ExCore2Sockets.sendCommandToRecieveBytes] debug blocking')
+    # self.sending = True
+    # if self.connected != True:
+    #   self.connect()
+    # while True:
+    #   i_count += 1
+    #   if i_count == 12:
+    #     raise Exception('[ExCore2Sockets.sendCommandToRecieveBytes] i_count == 12: on sendCommand')
+    #   try:
+    #     # if self.debug: 
+    #     print(f'[Controller] debug sending {command} at {time.time()}')
+    #     self.s.send(command.encode())
+    #     data_size_raw = self.s.recv(recv_buffer_size)
+    #     print(f'[Controller] data_size_raw {data_size_raw}')
+    #     data_size = struct.unpack('>I', data_size_raw)[0]
+    #     print(f'[Controller] data_size {data_size}')
+    #     received_payload = b""
+    #     reamining_payload_size = data_size
+    #     while reamining_payload_size != 0:
+    #       received_payload += self.s.recv(reamining_payload_size)
+    #       reamining_payload_size = data_size - len(received_payload)
+    #     data = pickle.loads(received_payload)
+    #     if self.debug: print(f'[ExCore2Sockets.sendCommandToRecieveBytes] debug finished {command} at {time.time()}')
+    #     self.sending = False
+    #     return data
+    #   except Exception as e:
+    #     print(f'[ExCore2Sockets.sendCommandToRecieveBytes] send command exception i_count:{i_count}')
+    #     print(e.__str__())    

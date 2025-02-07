@@ -303,7 +303,7 @@ class Mover:
     repeating_distances_counter = 0
     attempts_to_unstuck = 0
     previous_distance = 1.0
-    first_step = 0
+    first_step = 2
     _t = ""
     _t += f"#goToPoint point: {point}, min_distance: {min_distance}, release_mouse_on_end:{release_mouse_on_end}, release_mouse_on_start:{release_mouse_on_start}\n"
     _t += f"randomize_grid_pos_to_go: {randomize_grid_pos_to_go}, random_val: {random_val}\n"

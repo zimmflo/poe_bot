@@ -25,7 +25,7 @@ from utils.gamehelper import Entity
 notebook_dev = False
 
 
-# In[3]:
+# In[ ]:
 
 
 from utils.encounters import EssenceEncounter, BreachEncounter, RitualEncounter, DeliriumEncounter
@@ -33,6 +33,7 @@ from utils.constants import ESSENCES_KEYWORD
 
 from utils.components import PoeBotComponent 
 from utils.temps import MapperCache2
+from utils.ui import Item, InventoryItem, StashItem
 
 # open portal and enter it
 def openPortal():
@@ -55,10 +56,16 @@ MAPS_TO_IGNORE = [
   "MapFortress", #TODO class MapForptress boss activators
 
   "MapLostTowers", # class MapLostTowers multi layerd location
-  "MapBluff", # tower
+  # "MapBluff", # tower
   "MapMesa", # tower
   "MapSwampTower", # multi layerd
   "MapSwampTower_NoBoss", # multi layerd
+]
+
+OILS_BY_TIERS = [
+  'Distilled Ire',
+  'Distilled Guilt',
+  'Distilled Greed'
 ]
 
 class MapperSettings:
@@ -76,16 +83,24 @@ class MapperSettings:
   discovery_percent = default_discovery_percent # % for which itll explore the area
   
   prefered_tier:str = "15+"
+  min_map_tier = 0
+  max_map_tier = 17
+  prefer_high_tier = True
 
   #TODO keep consumables same as maps.ipynb
   keep_consumables = []
-
-  #TODO add priority to it
-  low_priority_maps = []
-
   keep_waystones_in_inventory = 5
+
+  low_priority_maps = []
+  high_priority_maps = []
+
   waystone_upgrade_to_rare = True 
+  waystone_upgrade_to_rare_force = True #TODO identify + alch|| identify + aug + regal 
   waystone_vaal = False ##TODO if map is rare, not corrupted and identified vaal it
+
+  anoint_maps = False
+  anoint_maps_force = False
+  anoint_max_tier = 2
 
   max_map_run_time = 600
 
@@ -96,6 +111,7 @@ class MapperSettings:
   force_breaches = False
 
   do_essences = True
+
   
   do_rituals = False
   do_rituals_buyout_function = lambda *agrs, **kwargs: True
@@ -104,38 +120,212 @@ class MapperSettings:
     for key, value in config.items():
       setattr(self, key, value )
     print(str(self))
+  def assignConsumables(self):
+    if self.waystone_upgrade_to_rare:
+      self.keep_consumables.append({"Orb of Alchemy": 10})
+    if self.waystone_upgrade_to_rare_force:
+      self.keep_consumables.append({"Orb of Augmentation": 10})
+      self.keep_consumables.append({"Regal Orb": 10})
+    if self.waystone_vaal:
+      self.keep_consumables.append({"Vaal Orb": 10})
   def __str__(self):
     return f'[MapperSettings]: {str(vars(self))}'
 class Mapper2(PoeBotComponent):
   can_pick_drop:bool = None
+  keep_consumables:List[dict] = []
   def __init__(self, poe_bot:Poe2Bot, settings:MapperSettings):
     super().__init__(poe_bot)
     self.settings = settings
+    self.assignConsumables()
     self.cache = MapperCache2(unique_id=poe_bot.unique_id)
     self.current_map:MapArea
+  def assignConsumables(self):
+    if self.settings.waystone_upgrade_to_rare:
+      self.keep_consumables.append({"Orb of Alchemy": 10})
+    if self.settings.waystone_upgrade_to_rare_force:
+      self.keep_consumables.append({"Orb of Augmentation": 10})
+      self.keep_consumables.append({"Regal Orb": 10})
+    if self.settings.waystone_vaal:
+      self.keep_consumables.append({"Vaal Orb": 10})
   #TODO write logic
+  def sortWaystones(self, items: List[Item]):
+    items.sort(key=lambda i: i.map_tier, reverse=self.settings.prefer_high_tier)
+  def filterWaystonesCanRun(self, items: List[Item], sorted = False):
+    waystones_can_run = list(filter(lambda i: 
+      i.map_tier and 
+      i.map_tier >= self.settings.min_map_tier and 
+      i.map_tier <= self.settings.max_map_tier
+    , items))
+    if sorted: self.sortWaystones(waystones_can_run) 
+    return waystones_can_run
+  def getWaystonesCanUse(self,priority='inventory', source='all'):
+    inventory = self.poe_bot.ui.inventory
+    stash = self.poe_bot.ui.stash
+    all_maps:List[Item] = []
+    maps_we_can_run_in_inventory:List[InventoryItem] = []
+    maps_we_can_run_in_stash:List[StashItem] = []
+    if source != 'stash':
+      inventory.update()
+      maps_we_can_run_in_inventory = self.filterWaystonesCanRun(inventory.items)
+    if source != 'inventory':
+      all_stash_items = stash.getAllItems()
+      maps_we_can_run_in_stash = self.filterWaystonesCanRun(all_stash_items)
+
+    if priority == 'inventory':
+      all_maps.extend(maps_we_can_run_in_inventory)
+      all_maps.extend(maps_we_can_run_in_stash)
+    else:
+      all_maps.extend(maps_we_can_run_in_stash)
+      all_maps.extend(maps_we_can_run_in_inventory)
+
+    self.sortWaystones(all_maps)  
+    return all_maps
+
   def doPreparations(self):
     '''
     basically just 
     - sell items if needed and
     - pick consumables if needed #call self.doStashing 
     - stash items if needed #call self.doStashing
+    - modify waystones
     '''
-    # pick maps from stash if dont have any
-    # check if we have better maps in stash
-    # sorted_maps = getMapsCanRun()
-    # if len(sorted_maps) == 0:
-    #   print(f'cannot find maps in stash.temp or inventory, checking stash')
-    # # check if we have any better map to run in our inventory or stash
-    # if sorted_maps[0].source != 'inventory':
-    #   print('we have better map in stash')
-    #   _maps_in_stash = list(filter(lambda i: i.source == 'stash', sorted_maps))
-    #   keys_stash_tabs.extend(list(map(lambda i: i.tab_index, _maps_in_stash)))
-    #   need_to_pick_something = True
-    #TODO check if need to pick consumables for mapping, alch\vaal orbs
+    print(f'[Mapper.doPreparations] call at {time.time()}')
+    inventory = self.poe_bot.ui.inventory
+    inventory.update()
+    need_to_manage_stash = False
+    while True:
+      # if stash temp is empty
+      all_stash_items = poe_bot.ui.stash.getAllItems()
+      if len(all_stash_items) == 0:
+        print(f'[Mapper.doPreparations] need_to_manage_stash because empty cache')
+        need_to_manage_stash = True
+        break 
+      # if has better map in stash
+      waystones_can_use = self.getWaystonesCanUse()
+      need_to_manage_stash_waystone_reason = None
+      if len(waystones_can_use) == 0:
+        need_to_manage_stash_waystone_reason = "no waystones in inventory"
+      if waystones_can_use[0].source == "stash":
+        need_to_manage_stash_waystone_reason = "best waystone is in stash"
+      if need_to_manage_stash_waystone_reason != None:
+        print(f'[Mapper.doPreparations] need_to_manage_stash because {need_to_manage_stash_waystone_reason}')
+        need_to_manage_stash = True
+        break 
+
+      # if lack of consumables or willing to modify maps
+
+      break
+    print(f'[Mapper.doPreparations] need_to_manage_stash {need_to_manage_stash}')
+    if need_to_manage_stash == True:
+      self.manageStashAndInventory(pick_consumables=True)
+
+    maps_in_inventory = self.getWaystonesCanUse(source="inventory")
+    # if the best map to run needs to be modified, pick consumables and modify all at once
+    need_to_modify_maps = False
+    while True:
+      if self.settings.anoint_maps and len(maps_in_inventory[0].getDeliriumMods()) == 0:
+        need_to_modify_maps = True
+        break
+      if (self.settings.waystone_upgrade_to_rare or self.settings.waystone_upgrade_to_rare_force) and maps_in_inventory[0].rarity != "Rare":
+        need_to_modify_maps = True
+        break
+      break
+    
+    if need_to_modify_maps:
+      if need_to_manage_stash == False:
+        self.manageStashAndInventory(pick_consumables=True)
+      def identifyMaps():
+        poe_bot.ui.inventory.update()
+        unidentified_items = list(filter(lambda m: m.map_tier and m.identified == False,poe_bot.ui.inventory.items))
+        if len(unidentified_items) != 0:
+          while True:
+            poe_bot.refreshInstanceData()
+            poe_bot.ui.inventory.update()
+            unidentified_items = list(filter(lambda m: m.map_tier and m.identified == False,poe_bot.ui.inventory.items))
+            if len(unidentified_items) == 0:
+              break
+            doryani_entity = next((e for e in poe_bot.game_data.entities.all_entities if e.render_name == "Doryani"))
+            doryani_entity.click(hold_ctrl=True)
+            time.sleep(random.uniform(0.30, 0.60))
+          poe_bot.ui.npc_dialogue.update()
+          if poe_bot.ui.npc_dialogue.visible == True:
+            poe_bot.ui.closeAll()
+      identifyMaps()
+      inventory.open()
+      # alch logic
+      if self.settings.waystone_upgrade_to_rare or self.settings.waystone_upgrade_to_rare_force:
+        maps_can_alch = list(filter(lambda m: m.corrupted == False and m.rarity == "Normal", maps_in_inventory))
+        alchemy_orb_stacks = list(filter(lambda i: i.name == "Orb of Alchemy", inventory.items))
+        alchemy_orb_count = sum(list(map(lambda i: i.items_in_stack,alchemy_orb_stacks)))
+        maps_can_alch = maps_can_alch[:alchemy_orb_count]
+
+        if alchemy_orb_count != 0 and len(maps_can_alch) != 0:
+          alchemy_orb_stacks[0].click(button="right")
+          time.sleep(random.uniform(0.20, 0.40))
+          poe_bot.ui.clickMultipleItems(maps_can_alch, hold_ctrl=False, hold_shift=True)
+        # aug logic
+        maps_can_aug_regal = list(filter(lambda m: m.corrupted == False and m.identified == True and m.rarity == "Magic", maps_in_inventory))
+        maps_can_aug = []
+        maps_can_regal = []
+
+        for map_item in maps_can_aug_regal:
+          map_mods = len(map_item.item_mods_raw) - len(map_item.getDeliriumMods())
+          if map_mods == 1:
+            maps_can_aug.append(map_item)
+          else:
+            maps_can_regal.append(map_item)
+
+        aug_stacks = list(filter(lambda i: i.name == "Orb of Augmentation", inventory.items))
+        aug_count = sum(list(map(lambda i: i.items_in_stack,aug_stacks)))
+        maps_can_aug = maps_can_aug[:aug_count]
+        maps_can_regal.extend(maps_can_aug)
+
+        if aug_count != 0 and len(maps_can_aug) != 0:
+          aug_stacks[0].click(button="right")
+          time.sleep(random.uniform(0.20, 0.40))
+          poe_bot.ui.clickMultipleItems(maps_can_aug, hold_ctrl=False, hold_shift=True)
+          time.sleep(random.uniform(0.20, 0.40))
+
+        # regal logic
+        regal_stacks = list(filter(lambda i: i.name == "Regal Orb", inventory.items))
+        regal_count = sum(list(map(lambda i: i.items_in_stack, regal_stacks)))
+        maps_can_regal = maps_can_regal[:regal_count]
+
+        if regal_count != 0 and len(maps_can_regal) != 0:
+          regal_stacks[0].click(button="right")
+          time.sleep(random.uniform(0.20, 0.40))
+          poe_bot.ui.clickMultipleItems(maps_can_regal, hold_ctrl=False, hold_shift=True)
+          time.sleep(random.uniform(0.20, 0.40))
+      # anoint logic
+      if self.settings.anoint_maps:
+        maps_can_be_anointed = list(filter(lambda m: m.corrupted == False and len(m.getDeliriumMods()) < 3, maps_in_inventory))
+        for m in maps_can_be_anointed: print(m.raw)
+        oils_can_use = self.getUsableOilsFromItems(inventory.items)
+        oil_items = []
+        for oil in oils_can_use:
+          for i in range(oil.items_in_stack):
+            oil_items.append(oil)
+
+        while len(maps_can_be_anointed) != 0:
+          map_item = maps_can_be_anointed.pop(0)
+          map_deli_mods = map_item.getDeliriumMods()
+          availiable_mods = 3 - len(map_deli_mods)
+          if len(oil_items) < availiable_mods:
+            break
+          anoint_with = []
+          for _i in range(availiable_mods):
+            anoint_with.append(oil_items.pop(0))
+          poe_bot.ui.anoint_ui.anointItem(map_item, anoint_with)
+      self.poe_bot.ui.closeAll()
     self.cache.stage = 1
     self.cache.save()
   #TODO add some sorting for maps rather than this: map_obj = random.choice(possible_to_run_maps)
+  def getUsableOilsFromItems(self, items:List[Item]):
+    #TODO sort oils by tier
+    OILS_TYPES_CAN_USE = OILS_BY_TIERS[:self.settings.anoint_max_tier]
+    oils_can_use = list(filter(lambda i: i.name in OILS_TYPES_CAN_USE, items)) 
+    oils_can_use.sort(key=lambda i: OILS_BY_TIERS.index(i.name), reverse=True)
+    return oils_can_use
   def activateMap(self):
     '''
     open map devic
@@ -143,8 +333,7 @@ class Mapper2(PoeBotComponent):
     '''
     poe_bot:Poe2Bot = self.poe_bot
     poe_bot.ui.inventory.update()
-    maps_in_inventory = list(filter(lambda i: i.map_tier, poe_bot.ui.inventory.items))
-    maps_in_inventory.sort(key=lambda i: i.map_tier, reverse=prefer_high_tier)
+    maps_in_inventory = self.getWaystonesCanUse(source="inventory")
     if len(maps_in_inventory) == 0:
       self.cache.reset()
       raise Exception("[Mapper.activateMap] len(maps_in_inventory) == 0 in activateMap")
@@ -154,7 +343,7 @@ class Mapper2(PoeBotComponent):
     poe_bot.ui.map_device.update()
     possible_to_run_maps = list(filter(lambda m: 
       # m.is_boss == False and # some bosses have unique logic?
-      m.is_tower == False and# cant run tower maps yet
+      # m.is_tower == False and# cant run tower maps yet
       m.is_hideout == False and# hideouts ignored
       m.is_trader == False and# manual trade
       # m.is_ritual == False and# save rituals for tests
@@ -163,7 +352,13 @@ class Mapper2(PoeBotComponent):
     if len(possible_to_run_maps) == 0:
       poe_bot.raiseLongSleepException('dont have any maps to run visible')
     print("[Mapper.activateMap] #TODO sort maps by some criteria")
-    map_obj = random.choice(possible_to_run_maps)
+
+    possible_to_run_maps.sort(key=lambda m: dist(m.screen_pos.toList(), (poe_bot.game_window.center_point)))
+    possible_to_run_maps.sort(key=lambda m: m.name in self.settings.low_priority_maps)
+    possible_to_run_maps.sort(key=lambda m: m.name in self.settings.high_priority_maps, reverse=True)
+    # for m in possible_to_run_maps: print(m.raw)
+
+    map_obj = possible_to_run_maps[0]
     print(f"[Mapper.activateMap] going to run map {map_obj.raw}")
     poe_bot.ui.map_device.moveScreenTo(map_obj)
     time.sleep(random.uniform(0.15, 0.35))
@@ -201,39 +396,15 @@ class Mapper2(PoeBotComponent):
         poe_bot.raiseLongSleepException("[Mapper.activateMap] cant open dropdown for map device #?")
     poe_bot.ui.map_device.update()
     
-    
-    
-    
     print("[Mapper.activateMap] dropdown opened")
     if len(poe_bot.ui.map_device.place_map_window_items) != 0:
       poe_bot.raiseLongSleepException('[Mapper.activateMap] len(poe_bot.ui.map_device.place_map_window_items) != 0 #TODO remove all, test below')
       poe_bot.ui.clickMultipleItems(poe_bot.ui.map_device.place_map_window_items)
-    poe_bot.ui.inventory.update()
-    maps_in_inventory = list(filter(lambda i: i.map_tier, poe_bot.ui.inventory.items))
-    maps_in_inventory.sort(key=lambda i: i.map_tier, reverse=prefer_high_tier)
     map_to_run = maps_in_inventory[0]
     print(f'[Mapper.activateMap] going to run map: {map_to_run.raw}')
-    if self.settings.waystone_upgrade_to_rare == True:
-      while True:
-        if map_to_run.rarity != "Normal":
-        #TODO identified poe2 broken from hud?
-        # if map_to_run.rarity != "Normal" or map_to_run.identified == False:
-          print(f'[Mapper.activateMap] cant modify {map_to_run.raw}')
-          break
-        alchemy_orbs = list(filter(lambda i: i.name == "Orb of Alchemy", poe_bot.ui.inventory.items))
-        if len(alchemy_orbs) == 0:
-          break
-        print(f'')
-        alchemy_orb = alchemy_orbs[0]
-        alchemy_orb.click(button="right")
-        time.sleep(random.uniform(0.4, 1.2))
-        map_to_run.click()
-        time.sleep(random.uniform(0.8, 1.2))
-        break
-    while True:
-      print(f'[Mapper.activateMap] #TODO self.settings.waystone_vaal, vaal map if possible')
-      break
-    print(f'[Mapper.activateMap] placing map {map_to_run.raw} #TODO update map item after modifications')
+
+
+    print(f'[Mapper.activateMap] placing map {map_to_run.raw}')
     map_to_run.click(hold_ctrl=True)
     time.sleep(random.uniform(0.4, 1.2))
 
@@ -244,24 +415,178 @@ class Mapper2(PoeBotComponent):
 
     self.cache.stage = 2
     self.cache.save()
-  def doStashing(self):
+  def manageStashAndInventory(self, pick_consumables = False):
     poe_bot = self.poe_bot
-    # free inventory if needed
+    stash = poe_bot.ui.stash
+    inventory = poe_bot.ui.inventory
+    all_stash_items = stash.getAllItems()
+    if len(all_stash_items) == 0: 
+      stash.updateStashTemp()
+
+    if pick_consumables:
+      stash_tab_indexes:List[int] = []
+      consumables_to_pick = []
+      oils_to_pick_count = 0
+      maps_to_pick_count = random.randint(6,10)
+
+
+      all_waystones = self.getWaystonesCanUse()
+      if len(all_waystones) == 0:
+        print(f'[Mapper.manageStashAndInventory] no waystones in stash.cache or inventory, rechecking stash') 
+        stash.updateStashTemp()
+        all_waystones = self.getWaystonesCanUse()
+        if len(all_waystones) == 0:
+          poe_bot.raiseLongSleepException(f'[Mapper.manageStashAndInventory] no waystones found in stash and inventory after updating')
+      if all_waystones[0].source == 'stash':
+        print(f'[Mapper.manageStashAndInventory] best waystone is in stash')
+        list(map(lambda i: stash_tab_indexes.append(i.tab_index), self.getWaystonesCanUse(source="stash")))
+
+      all_stash_items = stash.getAllItems()
+
+      for key in self.keep_consumables:
+        consumable:str = list(key.keys())[0]
+        min_amount = key[consumable]
+        consumable_in_inventory = list(filter(lambda i: i.name == consumable,inventory.items))
+        amount_in_inventory = sum(list(map(lambda i: i.items_in_stack, consumable_in_inventory)))
+        need_to_pick = min_amount - amount_in_inventory
+        if need_to_pick > 0:
+          consumables_to_pick.append({consumable: need_to_pick})
+          similar_items_in_stash = list(filter(lambda i: i.name == consumable, all_stash_items))
+          if len(similar_items_in_stash) != 0:
+            key_stash_tabs = list(map(lambda i: i.tab_index, similar_items_in_stash))
+            stash_tab_indexes.extend(key_stash_tabs)
+          
+
+
+      oils_count_to_keep_in_invnentory = self.settings.keep_waystones_in_inventory * 3
+      oils_in_inventory = self.getUsableOilsFromItems(inventory.items)
+      current_oil_count = sum(list(map(lambda i: i.items_in_stack, oils_in_inventory)))
+      oils_to_pick_count = oils_count_to_keep_in_invnentory - current_oil_count
+      if oils_to_pick_count > 0:
+        oils_in_stash = self.getUsableOilsFromItems(all_stash_items)
+        list(map(lambda i: stash_tab_indexes.append(i.tab_index), oils_in_stash))
+
+      stash_tab_indexes = list(set(stash_tab_indexes))
+      if len(stash_tab_indexes) != 0:
+        stash.open()
+        print(f'[Mapper.manageStashAndInventory] going to check stash tab indexes {stash_tab_indexes}') 
+        random.shuffle(stash_tab_indexes)
+        try:
+          stash_tab_indexes.pop(stash_tab_indexes.index(stash.current_tab_index))
+        except Exception as e:
+          print(f"[Mapper.manageStashAndInventory] tab with index {stash.current_tab_index} is not in list, but we ll still check it")
+        stash_tab_indexes.insert(0, stash.current_tab_index)
+
+        for stash_tab_index in stash_tab_indexes:
+          print(f'[Mapper.manageStashAndInventory] getting items from stash tab {stash_tab_index}')
+          items_to_pick:List[StashItem] = []
+          stash.openTabIndex(stash_tab_index)
+          # check if have better maps maps_to_pick_count
+          if maps_to_pick_count > 0:
+            all_maps = []
+            maps_we_can_run_in_inventory = self.filterWaystonesCanRun(inventory.items)
+            maps_we_can_run_in_stash = self.filterWaystonesCanRun(stash.current_tab_items)
+            all_maps.extend(maps_we_can_run_in_stash)
+            all_maps.extend(maps_we_can_run_in_inventory)
+            self.sortWaystones(all_maps)
+            for map_item in all_maps[:self.settings.keep_waystones_in_inventory]:
+              if map_item.source == "stash":
+                #TODO added 1 map, supposed to stash 1
+                print(f'[Mapper.manageStashAndInventory] going to pick map {map_item.raw}')
+                items_to_pick.append(map_item)
+                maps_to_pick_count -= 1
+              if maps_to_pick_count <= 0:
+                break
+          # check if have oils_to_pick_count
+          if oils_to_pick_count > 0:
+            usable_oils_in_tab = self.getUsableOilsFromItems(stash.current_tab_items)
+            for oil_item in usable_oils_in_tab:
+              print(f'[Mapper.manageStashAndInventory] going to pick oil {oil_item.raw}')
+              items_to_pick.append(oil_item)
+              oils_to_pick_count -= oil_item.items_in_stack
+              if oils_to_pick_count <= 0:
+                break
+          # check if have consumables_to_pick
+          if len(consumables_to_pick) != 0:
+            indexes_to_remove = []
+            for key_index in range(len(consumables_to_pick)):
+              key = consumables_to_pick[key_index]
+              consumable:str = list(key.keys())[0]
+              need_to_pick = consumables_to_pick[key_index][consumable]
+              consumables_in_current_tab = list(filter(lambda i: i.name == consumable,stash.current_tab_items))
+              consumables_in_current_tab.sort(key=lambda i: i.items_in_stack)
+              for consumable_item in consumables_in_current_tab:
+                items_to_pick.append(consumable_item)
+                consumables_to_pick[key_index][consumable] -= consumable_item.items_in_stack
+                if consumables_to_pick[key_index][consumable] <= 0:
+                  indexes_to_remove.append(key_index)
+                  break
+
+            for key_index in indexes_to_remove[::-1]: consumables_to_pick.pop(key_index)
+          self.stashUselessItems()
+          self.poe_bot.ui.clickMultipleItems(items_to_pick, random_sleep=False)
+        self.poe_bot.ui.closeAll()
+      # checks if all ok
+      waystones_in_inventory = self.getWaystonesCanUse(source="inventory")
+      if len(waystones_in_inventory) == 0:
+        poe_bot.raiseLongSleepException('[Mapper.manageStashAndInventory] dont have waystones after managing stash')
+      # check if best map is anointed or we have consumables to make it rare
+      if self.settings.anoint_maps_force:
+        oils_in_inventory = []
+        if waystones_in_inventory[0].getDeliriumMods() == 0 and len(oils_in_inventory) == 0: 
+          poe_bot.raiseLongSleepException('[Mapper.manageStashAndInventory] settings.anoint_maps_force and best map isnt delirious and dont have oils to make it delirious')
+
+      # check if best map is rare or we have consumables to make it rare
+      if self.settings.waystone_upgrade_to_rare_force:
+        pass
+    else:
+      # free inventory if needed
+      if self.stashUselessItems() == True:
+        poe_bot.ui.closeAll()
+        time.sleep(random.uniform(0.3, 1.4))
+  def stashUselessItems(self, consumables_multiplier = 2):
+    inventory = self.poe_bot.ui.inventory
     poe_bot.ui.inventory.update()
     empty_slots = poe_bot.ui.inventory.getEmptySlots()
     if len(empty_slots) < 40:
       poe_bot.ui.stash.open()
       items_to_keep = []
       poe_bot.ui.inventory.update()
-      waystones_to_keep = list(filter(lambda i: i.map_tier, poe_bot.ui.inventory.items))
-      waystones_to_keep.sort(key=lambda i: i.map_tier, reverse=prefer_high_tier)
+      
+      # waystones
+      waystones_to_keep = self.getWaystonesCanUse(source="inventory")
+      self.sortWaystones(waystones_to_keep)
       items_to_keep.extend(waystones_to_keep[:self.settings.keep_waystones_in_inventory-1])
-      alchemy_orbs = list(filter(lambda i: i.name == "Orb of Alchemy", poe_bot.ui.inventory.items))
-      items_to_keep.extend(alchemy_orbs[:1])
+      
+      # usual consumables
+      for consumable in self.keep_consumables:
+        name:str = list(consumable.keys())[0]
+        amount:int = consumable[name] * consumables_multiplier
+        consumables_in_inventory = list(filter(lambda i: i.name == name, poe_bot.ui.inventory.items))
+        if len(consumables_in_inventory) == 0: continue
+        consumables_in_inventory.sort(key=lambda i: i.items_in_stack, reverse=False)
+        current_amount = 0
+        while len(consumables_in_inventory) != 0:
+          if current_amount > amount: 
+            break
+          consumable_to_keep = consumables_in_inventory.pop(0)
+          consumable_to_keep_count = consumable_to_keep.items_in_stack
+          current_amount += consumable_to_keep_count
+          items_to_keep.append(consumable_to_keep)
+      
+      # oils
+      oils_count_to_keep_in_invnentory = self.settings.keep_waystones_in_inventory * 3 * consumables_multiplier
+      oils_in_inventory = self.getUsableOilsFromItems(inventory.items)
+      oils_in_inventory_count = 0
+      for oil_item in oils_in_inventory:
+        items_to_keep.append(oil_item)
+        oils_in_inventory_count += oil_item.items_in_stack
+        if oils_in_inventory_count >= oils_count_to_keep_in_invnentory:
+          break
       items_can_stash = list(filter(lambda i: i not in items_to_keep, poe_bot.ui.inventory.items))
       poe_bot.ui.clickMultipleItems(items_can_stash)
-      poe_bot.ui.closeAll()
-      time.sleep(random.uniform(0.3, 1.4))
+      return True
+    return False
   def isMapCompleted(self):
     poe_bot = self.poe_bot
     poe_bot.game_data.map_info.update()
@@ -308,7 +633,7 @@ class Mapper2(PoeBotComponent):
             self.run(True);return
           else:
             raise Exception('[Mapper2.run] map is completed and in hideout, restart')
-        self.doStashing()
+        self.manageStashAndInventory()
         
         original_area_raw_name = poe_bot.game_data.area_raw_name
         portals = poe_bot.game_data.entities.town_portals
@@ -368,7 +693,14 @@ class Mapper2(PoeBotComponent):
     if settings.force_kill_rares != False:
       mob_to_kill = next( (e for e in poe_bot.game_data.entities.attackable_entities_rares if e.isOnPassableZone()), None)
       if mob_to_kill:
-        poe_bot.combat_module.killUsualEntity(mob_to_kill)
+        res = True
+        while res != None:
+          res = poe_bot.mover.goToEntitysPoint(mob_to_kill, custom_break_function=poe_bot.loot_picker.collectLoot)
+          mob_to_kill = next( (e for e in poe_bot.game_data.entities.attackable_entities_rares if e.id == mob_to_kill.id and e.isOnPassableZone()), None)
+          if mob_to_kill == None:
+            break
+        if mob_to_kill != None:
+          poe_bot.combat_module.killUsualEntity(mob_to_kill)
         return True
     if settings.force_kill_blue != False:
       mob_to_kill = next( (e for e in poe_bot.game_data.entities.attackable_entities_blue if e.isOnPassableZone()), None)
@@ -854,7 +1186,7 @@ alch_map_if_possible = True
 
 
 default_config = {
-  "REMOTE_IP": '172.30.96.254', # z2
+  "REMOTE_IP": '172.18.196.148', # z2
   "unique_id": "poe_2_test",
   "build": "EaBallistasEle",
   "password": None,
@@ -906,7 +1238,7 @@ poe_bot.refreshAll()
 poe_bot.mover.setMoveType('wasd')
 
 
-# In[6]:
+# In[ ]:
 
 
 # set up build
@@ -925,251 +1257,11 @@ poe_bot.mover.setMoveType('wasd')
 # poe_bot.combat_module.build.auto_flasks.life_flask_recovers_es = True
 # poe_bot.combat_module.build.auto_flasks.hp_thresh = 0.70
 
-
-
-# In[ ]:
-
-
-from utils.combat import Build, SkillWithDelay, DodgeRoll
-from utils.mover import Mover
-from utils.utils import createLineIteratorWithValues
-from utils.utils import extendLine
-from utils.constants import CONSTANTS
-
-import numpy as np
-
-import _thread
-
-class ButtonHolder:
-  def __init__(self, poe_bot:Poe2Bot, button:str, max_hold_duration = 10., custom_break_function=lambda: False):
-    self.poe_bot = poe_bot
-    self.thread_finished = [False]
-    self.can_hold_till = [0]
-    self.custom_break_function = custom_break_function
-
-    self.button = button
-    self.press_func = poe_bot.bot_controls.keyboard_pressKey
-    self.release_func = poe_bot.bot_controls.keyboard_releaseKey
-
-    self.max_hold_duration = max_hold_duration
-
-    self.keep_thread_till = 0.
-    self.terminate_thread_after_inactivity_secs = 2.
-
-    self.running = False
-  def start(self):
-    self.running = True
-    print(f'[ButtonHolder.start] started at {time.time()}')
-    while self.thread_finished[0] != True:
-      if time.time() < self.can_hold_till[0]:
-        if (self.button in poe_bot.bot_controls.keyboard.pressed) == False:
-          print(f'pressing button {self.button}')
-          self.press_func(self.button, False)
-      else:
-        if (self.button in poe_bot.bot_controls.keyboard.pressed):
-          print(f'releasing button {self.button}')
-          self.release_func(self.button, False)
-
-      if time.time() > self.keep_thread_till:
-        print('terminating thread due to inactivity')
-        break
-      
-      if self.custom_break_function() == True:
-        print('breaking because of condition')
-        break
-      time.sleep(0.02)
-    if (self.button in poe_bot.bot_controls.keyboard.pressed):
-      print(f'releasing button {self.button}')
-      self.release_func(self.button, False)
-    print(f'[ButtonHolder.start] finished at {time.time()}')
-    self.running = False
-  
-  def keepAlive(self):
-    self.keep_thread_till = time.time() + self.terminate_thread_after_inactivity_secs
-
-  def forceStopPress(self):
-    self.keepAlive()
-    self.can_hold_till[0] = 0
-    print(f'releasing')
-  def holdFor(self, t:float):
-    self.keepAlive()
-    self.can_hold_till[0] = time.time() + t
-    print(f"will hold till {self.can_hold_till[0]}")
-    if self.running != True:
-      _thread.start_new_thread(self.start, ())
-class BarrierInvocationInfernalist(Build):
-  def __init__(self, poe_bot):
-    super().__init__(poe_bot)
-    self.auto_flasks.life_flask_recovers_es = True
-    self.auto_flasks.hp_thresh = 0.75
-    self.can_use_flask_after = 0.
-    self.barrier_charged_at = 0.
-    self.es_thresh_for_loop = 0.66
-    self.stop_spamming_condition_func = lambda: poe_bot.game_data.player.life.energy_shield.getPercentage() < self.es_thresh_for_loop
-
-    self.barrier_invocation:SkillWithDelay
-    self.curse:SkillWithDelay
-    self.demon_form:SkillWithDelay
-
-    demon_form = next((s for s in poe_bot.game_data.skills.internal_names if s == "demon_transformation"), None)
-    if demon_form:
-      print('found demon form')
-      skill_index = poe_bot.game_data.skills.internal_names.index("demon_transformation")
-      self.demon_form = SkillWithDelay(poe_bot, skill_index)
-    else:
-      raise Exception("demon form not found")
-    curse = next((s for s in poe_bot.game_data.skills.internal_names if s == "cold_weakness"), None)
-    if curse:
-      print('found curse')
-      skill_index = poe_bot.game_data.skills.internal_names.index("cold_weakness")
-      self.curse = SkillWithDelay(poe_bot, skill_index, min_delay=0.1)
-    else:
-      raise Exception("cwdt activator not found")
-    
-    barrier = next((s for s in poe_bot.game_data.skills.internal_names if s == "barrier_invocation"), None)
-    if barrier:
-      print('found barrier_invocation')
-      skill_index = poe_bot.game_data.skills.internal_names.index("barrier_invocation")
-      self.barrier_invocation = SkillWithDelay(poe_bot, skill_index, min_delay=0.1)
-      self.barrier_invocation_key_holder = ButtonHolder(poe_bot, self.barrier_invocation.skill_key, custom_break_function=self.stop_spamming_condition_func)
-    else:
-      raise Exception("cwdt trigger not found")
-
-    self.dodge = DodgeRoll(self.poe_bot)
-
-  def getDemonFormStacks(self):
-    poe_bot = self.poe_bot
-    return len(list(filter(lambda b: b == "demon_form_buff", poe_bot.game_data.player.buffs)))
-
-  def useFlasks(self):
-    poe_bot = self.poe_bot
-    buffs = poe_bot.game_data.player.buffs
-    # self.cwdt_loop.keep_alive(0.33)
-    is_ignited = "ignited" in buffs
-    is_in_demon_form = "demon_form_spell_gem_buff" in buffs
-    is_barrier_charged = "invocation_skill_ready" in buffs
-    if is_ignited and time.time() > self.can_use_flask_after:
-      active_flask_effects_count = len(list(filter(lambda e: e == "flask_effect_life", poe_bot.game_data.player.buffs)))
-      print(f"[BarrierInvocationInfernalist.useFlasks] flask_effects_active_count: {active_flask_effects_count}")
-      if active_flask_effects_count < 5:
-        for flask in poe_bot.game_data.player.life_flasks:
-          if flask.can_use is True:
-            if flask.index > 5 or flask.index < 0: continue
-            print(f'[AutoFlasks] using life flask {flask.name} {flask.index} {type(flask.index)}')
-            self.poe_bot.bot_controls.keyboard.pressAndRelease(f'DIK_{flask.index+1}', delay=random.randint(15,35)/100, wait_till_executed=False)
-            self.can_use_flask_after = time.time() + random.uniform(0.40, 0.50)
-            break
-    else:
-      self.auto_flasks.useFlasks()
-
-    if is_in_demon_form == False:
-      print(f'[BarrierInvocationInfernalist.useFlasks] need to activate demon form')
-      self.demon_form.use()
-      return
-
-    if self.stop_spamming_condition_func() == False:
-    # if poe_bot.game_data.player.life.energy_shield.getPercentage() > 0.75:
-      print(f"[BarrierInvocationInfernalist.useFlasks] can cast barrier invocation")
-      if time.time() - 2 > self.barrier_charged_at and is_barrier_charged == False:
-        print(f'barrier is not charged')
-        self.curse.use()
-        # self.barrier_charged_at = time.time()
-      else:
-        self.barrier_invocation_key_holder.holdFor(0.33)
-        if is_barrier_charged == True:
-          self.barrier_charged_at = time.time()
-    else:
-      print(f'seems like hp is < {self.es_thresh_for_loop}')
-      self.barrier_invocation_key_holder.forceStopPress()
-  def usualRoutine(self, mover:Mover):
-    poe_bot = self.poe_bot
-    self.useFlasks()
-    self.useBuffs()
-    nearby_enemies = list(filter(lambda e: e.isInRoi() and e.isInLineOfSight(), poe_bot.game_data.entities.attackable_entities))
-    pos_x_to_go, pos_y_to_go = mover.nearest_passable_point[0], mover.nearest_passable_point[1]
-    if len(nearby_enemies) != 0:
-      list(map(lambda e:e.calculateValueForAttack(), nearby_enemies))
-      nearby_enemies.sort(key=lambda e: e.attack_value, reverse=True)
-      # nearby_enemies.sort(key=lambda e: e.distance_to_player)
-      nearby_enemies[0].hover(wait_till_executed=False)
-    else:
-      # move mouse towards direction
-      screen_pos_x, screen_pos_y = poe_bot.getPositionOfThePointOnTheScreen(pos_y_to_go, pos_x_to_go)
-      screen_pos_x, screen_pos_y = poe_bot.game_window.convertPosXY(screen_pos_x, screen_pos_y)
-      poe_bot.bot_controls.mouse.setPosSmooth(screen_pos_x, screen_pos_y, False)
-    if mover.distance_to_target > 50:
-      # distance to next step on screen
-      distance_to_next_step = dist( (poe_bot.game_data.player.grid_pos.x, poe_bot.game_data.player.grid_pos.y), (pos_x_to_go, pos_y_to_go))
-      print(f'distance_to_next_step {distance_to_next_step}')
-      if distance_to_next_step > 20:
-        path_values = createLineIteratorWithValues((poe_bot.game_data.player.grid_pos.x, poe_bot.game_data.player.grid_pos.y), (pos_x_to_go, pos_y_to_go), poe_bot.game_data.terrain.passable)
-        path_without_obstacles = np.all(path_values[:,2] > 0)
-        print(f'path_without_obstacles {path_without_obstacles}')
-        if path_without_obstacles:
-          mover.move(pos_x_to_go, pos_y_to_go)
-          if self.dodge.use(wait_for_execution=False) is True:
-            return True
-
-    return False
-  def killUsual(self, entity, is_strong=False, max_kill_time_sec=10, *args, **kwargs):
-    poe_bot = self.poe_bot
-    entity_to_kill_id = entity.id
-    self.useFlasks()
-    entity_to_kill = next((e for e in poe_bot.game_data.entities.attackable_entities if e.id == entity_to_kill_id), None)
-    if not entity_to_kill:
-      print('[build.killUsual] cannot find desired entity to kill')
-      return True
-    if entity_to_kill.life.health.current == 0:
-      print('[build.killUsual] entity is dead')
-      return True
-    if entity_to_kill.isInRoi() == False or entity_to_kill.isInLineOfSight() == False:
-      print('[build.killUsual] getting closer in killUsual')
-      return False
-
-    keep_distance = 30 # if our distance is smth like this, kite
-    start_time = time.time()
-    kite_distance = random.randint(35,45)
-    reversed_run = random.choice([True, False])
-
-    entity_to_kill.hover(wait_till_executed=False)
-    poe_bot.last_action_time = 0
-    while True:
-      poe_bot.refreshInstanceData()
-      self.useFlasks()
-      entity_to_kill = next((e for e in poe_bot.game_data.entities.attackable_entities if e.id == entity_to_kill_id), None)
-      if not entity_to_kill:
-        print('[build.killUsual] cannot find desired entity to kill')
-        break
-      print(f'[build.killUsual] entity_to_kill {entity_to_kill}')
-      if entity_to_kill.life.health.current == 0:
-        print('[build.killUsual] entity is dead')
-        break
-      if entity_to_kill.isInRoi() == False or entity_to_kill.isInLineOfSight() == False:
-        print('[build.killUsual] getting closer in killUsual ')
-        break
-      skill_used = self.useBuffs()
-      entity_to_kill.hover()
-      if entity_to_kill.distance_to_player > keep_distance:
-        print('[build.killUsual] kiting around')
-        point = self.poe_bot.game_data.terrain.pointToRunAround(entity_to_kill.grid_position.x, entity_to_kill.grid_position.y, kite_distance+random.randint(-1,1), check_if_passable=True, reversed=reversed_run)
-        poe_bot.mover.move(grid_pos_x = point[0], grid_pos_y = point[1])
-        self.dodge.use(wait_for_execution=False)
-      else:
-        print('[build.killUsual] kiting away')
-        p0 = (entity_to_kill.grid_position.x, entity_to_kill.grid_position.y)
-        p1 = (poe_bot.game_data.player.grid_pos.x, poe_bot.game_data.player.grid_pos.y)
-        go_back_point = self.poe_bot.pather.findBackwardsPoint(p1, p0)
-        poe_bot.mover.move(*go_back_point)
-
-      if time.time()  > start_time + max_kill_time_sec:
-        print('[build.killUsual] exceed time')
-        break
-    return True
+from utils.combat import BarrierInvocationInfernalist
 poe_bot.combat_module.build = BarrierInvocationInfernalist(poe_bot)
 
 
-
-# In[8]:
+# In[7]:
 
 
 # default mover function
@@ -1181,8 +1273,11 @@ poe_bot.mover.default_continue_function = poe_bot.combat_module.build.usualRouti
 
 mapper_settings = MapperSettings({})
 # adjust mapper settings below
-mapper_settings.do_rituals = True
+# mapper_settings.do_rituals = True
 # mapper_settings.do_rituals_buyout_function = 
+mapper_settings.high_priority_maps = ["Bluff"]
+mapper_settings.min_map_tier = 13
+mapper_settings.anoint_maps = True
 
 
 # In[ ]:
@@ -1191,7 +1286,7 @@ mapper_settings.do_rituals = True
 mapper = Mapper2(poe_bot=poe_bot, settings = mapper_settings)
 
 
-# In[11]:
+# In[10]:
 
 
 # set up loot filter
@@ -1203,16 +1298,20 @@ ARTS_TO_PICK = [
   "Art/2DItems/Currency/CurrencyRerollRare.dds", # chaos
   "Art/2DItems/Currency/CurrencyAddModToRare.dds", # exalt
   "Art/2DItems/Currency/CurrencyUpgradeToUnique.dds", # chance
+  "Art/2DItems/Currency/CurrencyRerollSocketNumbers03.dds",
+  "Art/2DItems/Currency/CurrencyRerollSocketNumbers02.dds",
+  "Art/2DItems/Currency/CurrencyDuplicate.dds",
+  "Art/2DItems/Maps/DeliriumSplinter.dds",
 ]
 
 # big piles of gold
 for tier in range(2,17):
   ARTS_TO_PICK.append(f"Art/2DItems/Currency/Ruthless/CoinPileTier{tier}.dds")
 # waystones
-for tier in range(1,17):
+for tier in range(mapper.settings.min_map_tier,mapper.settings.max_map_tier):
+# for tier in range(1,17):
   ARTS_TO_PICK.append(f"Art/2DItems/Maps/EndgameMaps/EndgameMap{tier}.dds")
 
-# "Art/2DItems/Currency/Essence/GreaterFireEssence.dds"
 
 def isItemHasPickableKey(item_label:PickableItemLabel):
   if item_label.icon_render in ARTS_TO_PICK:
@@ -1223,8 +1322,18 @@ def isItemHasPickableKey(item_label:PickableItemLabel):
     return True
   return False
 
+def addRenderToLootfilter(target_item:str, render_art:str, min_count = 20):
+  items = list(filter(lambda i: i.name == target_item, poe_bot.ui.inventory.items))
+  if len(items) != 0 and sum(list(map(lambda i:i.items_in_stack, items))) > min_count:
+    return
+  ARTS_TO_PICK.append(render_art)
+
+poe_bot.ui.inventory.update()
 if mapper.settings.waystone_upgrade_to_rare:
-  ARTS_TO_PICK.append("Art/2DItems/Currency/CurrencyUpgradeToRare.dds")
+  addRenderToLootfilter("Orb of Alchemy", "Art/2DItems/Currency/CurrencyUpgradeToRare.dds")
+if mapper.settings.waystone_upgrade_to_rare_force:
+  addRenderToLootfilter("Orb of Augmentation", "Art/2DItems/Currency/CurrencyAddModToMagic.dds")
+  addRenderToLootfilter("Regal Orb", "Art/2DItems/Currency/CurrencyUpgradeMagicToRare.dds")
 
 # remove line below in case you want it to pick ALL items
 poe_bot.loot_picker.loot_filter.special_rules = [isItemHasPickableKey]
@@ -1241,6 +1350,12 @@ mapper.run()
 
 
 raise Exception('Script ended, restart')
+
+
+# In[13]:
+
+
+mapper.doPreparations()
 
 
 # In[ ]:
@@ -1383,87 +1498,11 @@ while True:
 raise "unreachable"
 
 
-# In[24]:
-
-
-prefer_high_tier = True
-
-
 # In[ ]:
 
 
 poe_bot.refreshAll()
 poe_bot.game_data.terrain.getCurrentlyPassableArea()
-
-
-# In[ ]:
-
-
-tsp = TSP(poe_bot)
-
-tsp.generatePointsForDiscovery()
-#TODO astar sorting
-discovery_points = tsp.sortedPointsForDiscovery()
-
-
-# In[ ]:
-
-
-poe_bot.game_data.player.grid_pos.toList()
-
-
-# In[ ]:
-
-
-discovery_points
-
-
-# In[ ]:
-
-
-poe_bot.backend.getMapInfo()
-
-
-# In[ ]:
-
-
-poe_bot.backend.getMapInfo()
-
-
-# In[18]:
-
-
-poe_bot.game_data.map_info.update()
-
-
-# In[ ]:
-
-
-poe_bot.game_data.map_info.map_completed
-
-
-# In[ ]:
-
-
-poe_bot.refreshAll()
-
-
-# In[ ]:
-
-
-poe_bot.game_data.player.grid_pos.toList()
-
-
-# In[ ]:
-
-
-poe_bot.mover.move(*poe_bot.game_data.player.grid_pos.toList())
-
-
-# In[ ]:
-
-
-# poe_bot.mo
 
 
 # In[ ]:
@@ -1477,25 +1516,9 @@ plt.imshow(poe_bot.game_data.terrain.passable)
 # In[ ]:
 
 
-poe_bot.refreshAll()
-for e in poe_bot.game_data.labels_on_ground_entities:
-  print(e.raw)
-
-
-# In[ ]:
-
-
-poe_bot.refreshAll()
-
-
-# In[ ]:
-
-
 poe_bot.ui.stash.update()
 
-
-# In[ ]:
-
+# waystone reforge logic
 
 max_tier_to_recycle = 11
 
@@ -1532,6 +1555,8 @@ for k in waystone_tiers_sorted:
 
 # In[1]:
 
+
+# ritual defer logic
 
 '''
 manually calculating weights
@@ -1680,45 +1705,6 @@ poe_bot.area_raw_name
 
 
 poe_bot.refreshAll()
-
-
-# In[ ]:
-
-
-poe_bot.ui.map_device.update()
-possible_to_run_maps = list(filter(lambda m: 
-  # m.is_boss == False and # some bosses have unique logic?
-  m.is_tower == False and# cant run tower maps yet
-  m.is_hideout == False and# hideouts ignored
-  m.is_trader == False and# manual trade
-  # m.is_ritual == False and# save rituals for tests
-  (m.name_raw in MAPS_TO_IGNORE) == False
-, poe_bot.ui.map_device.avaliable_maps))
-if len(possible_to_run_maps) == 0:
-  poe_bot.raiseLongSleepException('dont have any maps to run visible')
-print("[Mapper.activateMap] #TODO sort maps by some criteria")
-map_obj = random.choice(possible_to_run_maps)
-print(f"[Mapper.activateMap] going to run map {map_obj.raw}")
-poe_bot.ui.map_device.moveScreenTo(map_obj)
-time.sleep(random.uniform(0.15, 0.35))
-poe_bot.ui.map_device.update()
-updated_map_obj = next( (m for m in poe_bot.ui.map_device.avaliable_maps if m.id == map_obj.id))
-updated_map_obj.click()
-time.sleep(random.uniform(0.15, 0.35))
-poe_bot.ui.map_device.update()
-
-
-# In[26]:
-
-
-from math import dist
-
-
-
-# In[ ]:
-
-
-
 
 
 # In[ ]:
@@ -1933,13 +1919,13 @@ while is_wave_running:
 print(f'completed')
 
 
-# In[20]:
+# In[ ]:
 
 
 poe_bot.refreshAll()
 
 
-# In[22]:
+# In[ ]:
 
 
 while True:
@@ -1962,70 +1948,591 @@ while is_wave_running:
   # ('stacks count: {poe_bot.combat_module.build.getDemonFormStacks()}')
 
 
-# In[23]:
+# In[ ]:
 
 
+anoint_ui = poe_bot.ui.anoint_ui
+anoint_ui.update()
+
+poe_bot.ui.inventory.open()
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+poe_bot.ui.inventory.update()
+for i in poe_bot.ui.inventory.items: print(i.raw)
+
+
+# In[ ]:
+
+
+inventory = poe_bot.ui.inventory
+inventory.update()
+
+maps_can_run = list(filter(lambda i: i.getType() == "map", inventory.items))
+for m in maps_can_run: print(m.raw)
+
+
+# In[ ]:
+
+
+inventory = poe_bot.ui.inventory
+inventory.update()
+maps_can_run = list(filter(lambda i: i.getType() == "map", inventory.items))
+
+# identify logic
+unidentified_maps = list(filter(lambda m: m.identified == False,maps_can_run))
+
+# if mapper.settings.waystone_upgrade_to_rare_force
+
+
+def identifyItems():
+  poe_bot.ui.inventory.update()
+  unidentified_items = list(filter(lambda m: m.identified == False,inventory.items))
+  if len(unidentified_items) != 0:
+    while True:
+      poe_bot.refreshInstanceData()
+      inventory.update()
+      unidentified_items = list(filter(lambda m: m.identified == False,inventory.items))
+      if len(unidentified_items) == 0:
+        break
+      doryani_entity = next((e for e in poe_bot.game_data.entities.all_entities if e.render_name == "Doryani"))
+      doryani_entity.click(hold_ctrl=True)
+      time.sleep(random.uniform(0.30, 0.60))
+    poe_bot.ui.npc_dialogue.update()
+    if poe_bot.ui.npc_dialogue.visible == True:
+      poe_bot.ui.closeAll()
+
+
+# In[ ]:
+
+
+inventory = poe_bot.ui.inventory
+inventory.update()
+maps_can_run = list(filter(lambda i: i.getType() == "map", inventory.items))
+
+# alch logic
+maps_can_alch = list(filter(lambda m: m.corrupted == False and m.rarity == "Normal", maps_can_run))
+alchemy_orb_stacks = list(filter(lambda i: i.name == "Orb of Alchemy", inventory.items))
+alchemy_orb_count = sum(list(map(lambda i: i.items_in_stack,alchemy_orb_stacks)))
+maps_can_alch = maps_can_alch[:alchemy_orb_count]
+
+
+alchemy_orb_stacks[0].click(button="right")
+time.sleep(random.uniform(0.20, 0.40))
+poe_bot.ui.clickMultipleItems(maps_can_alch, hold_ctrl=False, hold_shift=True)
+
+inventory = poe_bot.ui.inventory
+inventory.update()
+maps_can_run = list(filter(lambda i: i.getType() == "map", inventory.items))
+
+
+# aug logic
+maps_can_aug_regal = list(filter(lambda m: m.corrupted == False and m.identified == True and m.rarity == "Magic", maps_can_run))
+maps_can_aug = []
+maps_can_regal = []
+
+for map_item in maps_can_aug_regal:
+  map_mods = len(map_item.item_mods_raw) - len(map_item.getDeliriumMods())
+  if map_mods == 1:
+    maps_can_aug.append(map_item)
+  else:
+    maps_can_regal.append(map_item)
+
+aug_stacks = list(filter(lambda i: i.name == "Orb of Augmentation", inventory.items))
+aug_count = sum(list(map(lambda i: i.items_in_stack,aug_stacks)))
+maps_can_aug = maps_can_aug[:aug_count]
+maps_can_regal.extend(maps_can_aug)
+
+
+aug_stacks[0].click(button="right")
+time.sleep(random.uniform(0.20, 0.40))
+poe_bot.ui.clickMultipleItems(maps_can_aug, hold_ctrl=False, hold_shift=True)
+time.sleep(random.uniform(0.20, 0.40))
+
+# regal logic
+regal_stacks = list(filter(lambda i: i.name == "Regal Orb", inventory.items))
+regal_count = sum(list(map(lambda i: i.items_in_stack, regal_stacks)))
+maps_can_regal = maps_can_regal[:regal_count]
+
+
+regal_stacks[0].click(button="right")
+time.sleep(random.uniform(0.20, 0.40))
+poe_bot.ui.clickMultipleItems(maps_can_regal, hold_ctrl=False, hold_shift=True)
+time.sleep(random.uniform(0.20, 0.40))
+
+
+
+
+# In[ ]:
+
+
+inventory = poe_bot.ui.inventory
+inventory.update()
+
+maps_can_run = list(filter(lambda i: i.getType() == "map", inventory.items))
+# anoint logic
+maps_can_be_anointed = list(filter(lambda m: m.corrupted == False and len(m.getDeliriumMods()) < 3, maps_can_run))
+for m in maps_can_be_anointed: print(m.raw)
+
+OILS_TYPES_CAN_USE = OILS_BY_TIERS[:mapper.settings.anoint_max_tier]
+oils_can_use = list(filter(lambda i: i.name in OILS_TYPES_CAN_USE, inventory.items))
+oil_items = []
+for oil in oils_can_use:
+  for i in range(oil.items_in_stack):
+    oil_items.append(oil)
+
+while len(maps_can_be_anointed) != 0:
+  map_item = maps_can_be_anointed.pop(0)
+  map_deli_mods = map_item.getDeliriumMods()
+  availiable_mods = 3 - len(map_deli_mods)
+  if len(oil_items) < availiable_mods:
+    break
+  anoint_with = []
+  for _i in range(availiable_mods):
+    anoint_with.append(oil_items.pop(0))
+  poe_bot.ui.anoint_ui.anointItem(map_item, anoint_with)
+
+# for i in oil_items: print(i.raw)
+
+
+# In[ ]:
+
+
+for m in maps_can_run: print(m.raw)
+
+
+# In[ ]:
+
+
+can_use_oils_names = OILS_BY_TIERS[:mapper.settings.anoint_max_tier]
+can_use_oils_names
+
+for oil_name in can_use_oils_names:
+  oil_items = list(filter(lambda i: i.name == oil_name, poe_bot.ui.inventory.items))
+  if oil_items != 0:
+    break
+
+oil_items[0].click(hold_ctrl=True)
+time.sleep(random.uniform(0.30, 0.60))
+poe_bot.ui.anoint_ui.update()
+
+def anointItem(item, consumables):
+  anoint_ui = poe_bot.ui.anoint_ui
+  anoint_ui.open(consumables[0])
+
+  item.click(hold_ctrl=True)
+  time.sleep(random.uniform(0.30, 0.60))
+  poe_bot.ui.clickMultipleItems(consumables, hold_ctrl=True, random_sleep=False, skip_items=False)
+  anoint_ui.anoint_button.click()
+  anoint_ui.update()
+  anoint_ui.placed_items[0].click(hold_ctrl=True)
+
+
+# In[ ]:
+
+
+mapper.doPreparations()
+
+
+# In[ ]:
+
+
+self = mapper
+poe_bot.ui.inventory.update()
+maps_in_inventory = list(filter(lambda i: i.map_tier and i.map_tier >= self.settings.min_map_tier and i.map_tier < self.settings.max_map_tier, poe_bot.ui.inventory.items))
+maps_in_inventory.sort(key=lambda i: i.map_tier, reverse=prefer_high_tier)
+# if the best map to run needs to be modified, pick consumables and modify all at once
+need_to_modify_maps = False
 while True:
-  poe_bot.refreshAll()
-  # plt.imshow(poe_bot.pather.terrain_for_a_star);plt.show()
+  if self.settings.anoint_maps and len(maps_in_inventory[0].getDeliriumMods()) == 0:
+    need_to_modify_maps = True
+    break
+  if (self.settings.waystone_upgrade_to_rare or self.settings.waystone_upgrade_to_rare_force) and maps_in_inventory[0].rarity != "Rare":
+    need_to_modify_maps = True
+    break
+  break
 
-  poe_bot.game_data.terrain.getCurrentlyPassableArea(dilate_kernel_size=0)
-  plt.imshow(poe_bot.game_data.terrain.currently_passable_area);plt.show()
-
-  poe_bot.pather.terrain_for_a_star[poe_bot.game_data.terrain.currently_passable_area != 1] = 65534
-
-  simulacrum.activateWave()
-  # plt.imshow(poe_bot.pather.terrain_for_a_star);plt.show()
-  poe_bot.refreshAll()
-  # plt.imshow(poe_bot.game_data.terrain.terrain_image);plt.show()
-  plt.imshow(poe_bot.game_data.terrain.passable);plt.show()
-  # shut the doors
-  for interesting_entitiy in interesting_entities:
-    poe_bot.game_data.terrain.passable[interesting_entitiy.grid_position.y-25:interesting_entitiy.grid_position.y+25, interesting_entitiy.grid_position.x-25:interesting_entitiy.grid_position.x+25] = 0
-
-  poe_bot.game_data.terrain.getCurrentlyPassableArea(dilate_kernel_size=0)
-  plt.imshow(poe_bot.game_data.terrain.currently_passable_area);plt.show()
-
-  arena_center = poe_bot.pather.utils.getCenterOf(poe_bot.game_data.terrain.currently_passable_area)
-  print(f'arena center {arena_center}')
-
-  points = getFourPoints(*arena_center, 70)
+need_to_modify_maps
 
 
-  run_points = []
+# In[ ]:
 
-  for point in points[1:]:
-    line_vals = createLineIteratorWithValues(arena_center, point, poe_bot.game_data.terrain.currently_passable_area)
-    last_point = arena_center
-    # print(line_vals)
-    for line_point in line_vals[10:]:
-      if line_point[-1] != 1.:
-        print(line_point)
+
+if need_to_modify_maps:
+  inventory = self.poe_bot.ui.inventory
+  #TODO pick consumables or ensure that consumables are picked
+  def identifyItems():
+    poe_bot.ui.inventory.update()
+    unidentified_items = list(filter(lambda m: m.identified == False,poe_bot.ui.inventory.items))
+    if len(unidentified_items) != 0:
+      while True:
+        poe_bot.refreshInstanceData()
+        poe_bot.ui.inventory.update()
+        unidentified_items = list(filter(lambda m: m.identified == False,poe_bot.ui.inventory.items))
+        if len(unidentified_items) == 0:
+          break
+        doryani_entity = next((e for e in poe_bot.game_data.entities.all_entities if e.render_name == "Doryani"))
+        doryani_entity.click(hold_ctrl=True)
+        time.sleep(random.uniform(0.30, 0.60))
+      poe_bot.ui.npc_dialogue.update()
+      if poe_bot.ui.npc_dialogue.visible == True:
+        poe_bot.ui.closeAll()
+  identifyItems()
+  if inventory.is_opened == False:
+    inventory.open()
+  # alch logic
+  if self.settings.waystone_upgrade_to_rare:
+    maps_can_alch = list(filter(lambda m: m.corrupted == False and m.rarity == "Normal", maps_in_inventory))
+    alchemy_orb_stacks = list(filter(lambda i: i.name == "Orb of Alchemy", inventory.items))
+    alchemy_orb_count = sum(list(map(lambda i: i.items_in_stack,alchemy_orb_stacks)))
+    maps_can_alch = maps_can_alch[:alchemy_orb_count]
+
+
+    alchemy_orb_stacks[0].click(button="right")
+    time.sleep(random.uniform(0.20, 0.40))
+    poe_bot.ui.clickMultipleItems(maps_can_alch, hold_ctrl=False, hold_shift=True)
+  # aug regal logic
+  if self.settings.waystone_upgrade_to_rare_force:
+    # aug logic
+    maps_can_aug_regal = list(filter(lambda m: m.corrupted == False and m.identified == True and m.rarity == "Magic", maps_in_inventory))
+    maps_can_aug = []
+    maps_can_regal = []
+
+    for map_item in maps_can_aug_regal:
+      map_mods = len(map_item.item_mods_raw) - len(map_item.getDeliriumMods())
+      if map_mods == 1:
+        maps_can_aug.append(map_item)
+      else:
+        maps_can_regal.append(map_item)
+
+    aug_stacks = list(filter(lambda i: i.name == "Orb of Augmentation", inventory.items))
+    aug_count = sum(list(map(lambda i: i.items_in_stack,aug_stacks)))
+    maps_can_aug = maps_can_aug[:aug_count]
+    maps_can_regal.extend(maps_can_aug)
+
+
+    aug_stacks[0].click(button="right")
+    time.sleep(random.uniform(0.20, 0.40))
+    poe_bot.ui.clickMultipleItems(maps_can_aug, hold_ctrl=False, hold_shift=True)
+    time.sleep(random.uniform(0.20, 0.40))
+
+    # regal logic
+    regal_stacks = list(filter(lambda i: i.name == "Regal Orb", inventory.items))
+    regal_count = sum(list(map(lambda i: i.items_in_stack, regal_stacks)))
+    maps_can_regal = maps_can_regal[:regal_count]
+
+
+    regal_stacks[0].click(button="right")
+    time.sleep(random.uniform(0.20, 0.40))
+    poe_bot.ui.clickMultipleItems(maps_can_regal, hold_ctrl=False, hold_shift=True)
+    time.sleep(random.uniform(0.20, 0.40))
+  # anoint logic
+  if self.settings.anoint_maps:
+    maps_can_be_anointed = list(filter(lambda m: m.corrupted == False and len(m.getDeliriumMods()) < 3, maps_in_inventory))
+    for m in maps_can_be_anointed: print(m.raw)
+
+    OILS_TYPES_CAN_USE = OILS_BY_TIERS[:self.settings.anoint_max_tier]
+    oils_can_use = list(filter(lambda i: i.name in OILS_TYPES_CAN_USE, inventory.items))
+    #TODO sort oils by tier
+    oil_items = []
+    for oil in oils_can_use:
+      for i in range(oil.items_in_stack):
+        oil_items.append(oil)
+
+    while len(maps_can_be_anointed) != 0:
+      map_item = maps_can_be_anointed.pop(0)
+      map_deli_mods = map_item.getDeliriumMods()
+      availiable_mods = 3 - len(map_deli_mods)
+      if len(oil_items) < availiable_mods:
         break
-      last_point = line_point
-    run_points.append([int(last_point[0]), int(last_point[1])])
-    # passable_point = poe_bot.game_data.terrain.checkIfPointPassable(*point)
-
-    print(f'{point} {run_points[-1]}')
-
-  plt.imshow(poe_bot.game_data.terrain.currently_passable_area[arena_center[1]-75:arena_center[1]+75, arena_center[0]-75:arena_center[0]+75]);plt.show()
+      anoint_with = []
+      for _i in range(availiable_mods):
+        anoint_with.append(oil_items.pop(0))
+      poe_bot.ui.anoint_ui.anointItem(map_item, anoint_with)
+  self.poe_bot.ui.closeAll()
 
 
-  wave_started_at = time.time()
-  is_wave_running = True
-  while is_wave_running:
-    for point in run_points:
-      poe_bot.mover.goToPoint(point,release_mouse_on_end=False)
-      if time.time() + 10 > wave_started_at:
-        is_wave_running = simulacrum.isWaveRunning()
-      if is_wave_running == False:
-        break
-      print(f'wave running status {is_wave_running}')
+# In[13]:
 
-  poe_bot.refreshInstanceData()
-  poe_bot.loot_picker.collectLootWhilePresented()
 
-  print(f'wave completed')
+def manageStashAndInventory(self:Mapper2, pick_consumables = False):
+  poe_bot = self.poe_bot
+  stash = poe_bot.ui.stash
+  all_stash_items = stash.getAllItems()
+  if len(all_stash_items) == 0: 
+    stash.updateStashTemp()
+
+  if pick_consumables:
+    stash.open()
+    # get items which we need to pick from stash
+    # get stash tabs which itll iterate
+    stash_tab_indexes:List[int] = []
+    all_stash_items = stash.getAllItems()
+
+    for key in mapper.keep_consumables:
+      consumable:str = list(key.keys())[0]
+      min_amount = key[consumable]
+      consumable_in_inventory = list(filter(lambda i: i.name == consumable,inventory.items))
+      amount_in_inventory = sum(list(map(lambda i: i.items_in_stack, consumable_in_inventory)))
+      if amount_in_inventory < min_amount:
+        similar_items_in_stash = list(filter(lambda i: i.name == consumable, all_stash_items))
+        if len(similar_items_in_stash) != 0:
+          key_stash_tabs = list(map(lambda i: i.tab_index, similar_items_in_stash))
+          stash_tab_indexes.extend(key_stash_tabs)
+
+
+
+
+    stash_tab_indexes = list(set(stash_tab_indexes))
+    print(f'[Mapper.manageStashAndInventory] going to pick items from stash tabs {stash_tab_indexes}')
+
+
+    try:
+      stash_tab_indexes.pop(stash_tab_indexes.index(stash.current_tab_index))
+    except Exception as e:
+      print(f"[Mapper.manageStashAndInventory] tab with index {stash.current_tab_index} is not in list, but we ll still check it")
+    stash_tab_indexes.insert(0, stash.current_tab_index)
+
+
+    can_pick_maps_count = random.randint(6,10)
+    for stash_tab_index in stash_tab_indexes:
+      stash.openTabIndex(stash_tab_index)
+      pass
+
+    # checks if all ok
+    if len(self.getWaystonesCanUse(source="inventory")) == 0:
+      poe_bot.raiseLongSleepException('[Mapper.manageStashAndInventory] dont have waystones after managing stash')
+    if self.settings.anoint_maps_force:
+      # check if best map is anointed or we have consumables to make it rare
+      pass
+    if self.settings.waystone_upgrade_to_rare_force:
+      # check if best map is rare or we have consumables to make it rare
+      pass
+
+self = mapper
+
+
+
+# In[ ]:
+
+
+manageStashAndInventory(mapper, pick_consumables=True)
+
+
+# In[ ]:
+
+
+inventory.update()
+
+
+# In[12]:
+
+
+self = mapper
+stash = poe_bot.ui.stash
+inventory = poe_bot.ui.inventory
+
+stash_tab_indexes:List[int] = []
+consumables_to_pick = []
+oils_to_pick_count = 0
+maps_to_pick_count = random.randint(6,10)
+
+
+all_waystones = self.getWaystonesCanUse()
+if len(all_waystones) == 0:
+  print(f'[Mapper.manageStashAndInventory] no waystones in stash.cache or inventory, rechecking stash') 
+  stash.updateStashTemp()
+  all_waystones = self.getWaystonesCanUse()
+  if len(all_waystones) == 0:
+    poe_bot.raiseLongSleepException(f'[Mapper.manageStashAndInventory] no waystones found in stash and inventory after updating')
+if all_waystones[0].source == 'stash':
+  print(f'[Mapper.manageStashAndInventory] best waystone is in stash')
+  list(map(lambda i: stash_tab_indexes.append(i.tab_index), self.getWaystonesCanUse(source="stash")))
+
+all_stash_items = stash.getAllItems()
+
+for key in self.keep_consumables:
+  consumable:str = list(key.keys())[0]
+  min_amount = key[consumable]
+  consumable_in_inventory = list(filter(lambda i: i.name == consumable,inventory.items))
+  amount_in_inventory = sum(list(map(lambda i: i.items_in_stack, consumable_in_inventory)))
+  need_to_pick = min_amount - amount_in_inventory
+  if need_to_pick > 0:
+    consumables_to_pick.append({consumable: need_to_pick})
+    similar_items_in_stash = list(filter(lambda i: i.name == consumable, all_stash_items))
+    if len(similar_items_in_stash) != 0:
+      key_stash_tabs = list(map(lambda i: i.tab_index, similar_items_in_stash))
+      stash_tab_indexes.extend(key_stash_tabs)
+
+
+# In[ ]:
+
+
+stash.update()
+list(filter(lambda i: i.name == "Regal Orb", stash.current_tab_items))
+
+
+# In[ ]:
+
+
+self = mapper
+stash = poe_bot.ui.stash
+inventory = poe_bot.ui.inventory
+
+stash_tab_indexes:List[int] = []
+consumables_to_pick = []
+oils_to_pick_count = 0
+maps_to_pick_count = random.randint(6,10)
+
+
+all_waystones = self.getWaystonesCanUse()
+if len(all_waystones) == 0:
+  print(f'[Mapper.manageStashAndInventory] no waystones in stash.cache or inventory, rechecking stash') 
+  stash.updateStashTemp()
+  all_waystones = self.getWaystonesCanUse()
+  if len(all_waystones) == 0:
+    poe_bot.raiseLongSleepException(f'[Mapper.manageStashAndInventory] no waystones found in stash and inventory after updating')
+if all_waystones[0].source == 'stash':
+  print(f'[Mapper.manageStashAndInventory] best waystone is in stash')
+  list(map(lambda i: stash_tab_indexes.append(i.tab_index), self.getWaystonesCanUse(source="stash")))
+
+all_stash_items = stash.getAllItems()
+
+for key in self.keep_consumables:
+  consumable:str = list(key.keys())[0]
+  min_amount = key[consumable]
+  consumable_in_inventory = list(filter(lambda i: i.name == consumable,inventory.items))
+  amount_in_inventory = sum(list(map(lambda i: i.items_in_stack, consumable_in_inventory)))
+  need_to_pick = min_amount - amount_in_inventory
+  if need_to_pick > 0:
+    consumables_to_pick.append({consumable: need_to_pick})
+    similar_items_in_stash = list(filter(lambda i: i.name == consumable, all_stash_items))
+    if len(similar_items_in_stash) != 0:
+      key_stash_tabs = list(map(lambda i: i.tab_index, similar_items_in_stash))
+      stash_tab_indexes.extend(key_stash_tabs)
+    
+
+
+oils_count_to_keep_in_invnentory = self.settings.keep_waystones_in_inventory * 3
+oils_in_inventory = self.getUsableOilsFromItems(inventory.items)
+current_oil_count = sum(list(map(lambda i: i.items_in_stack, oils_in_inventory)))
+oils_to_pick_count = oils_count_to_keep_in_invnentory - current_oil_count
+if oils_to_pick_count > 0:
+  oils_in_stash = self.getUsableOilsFromItems(all_stash_items)
+  list(map(lambda i: stash_tab_indexes.append(i.tab_index), oils_in_stash))
+
+stash_tab_indexes = list(set(stash_tab_indexes))
+if len(stash_tab_indexes) != 0:
+  stash.open()
+  print(f'[Mapper.manageStashAndInventory] going to check stash tab indexes {stash_tab_indexes}') 
+  random.shuffle(stash_tab_indexes)
+  try:
+    stash_tab_indexes.pop(stash_tab_indexes.index(stash.current_tab_index))
+  except Exception as e:
+    print(f"[Mapper.manageStashAndInventory] tab with index {stash.current_tab_index} is not in list, but we ll still check it")
+  stash_tab_indexes.insert(0, stash.current_tab_index)
+
+  for stash_tab_index in stash_tab_indexes:
+    print(f'[Mapper.manageStashAndInventory] getting items from stash tab {stash_tab_index}')
+    items_to_pick:List[StashItem] = []
+    stash.openTabIndex(stash_tab_index)
+    # check if have better maps maps_to_pick_count
+    if maps_to_pick_count > 0:
+      all_maps = []
+      maps_we_can_run_in_inventory = self.filterWaystonesCanRun(inventory.items)
+      maps_we_can_run_in_stash = mapper.filterWaystonesCanRun(stash.current_tab_items)
+      all_maps.extend(maps_we_can_run_in_stash)
+      all_maps.extend(maps_we_can_run_in_inventory)
+      self.sortWaystones(all_maps)
+      for map_item in all_maps:
+        if map_item.source == "stash":
+          #TODO added 1 map, supposed to stash 1
+          print(f'[Mapper.manageStashAndInventory] going to pick map {map_item.raw}')
+          items_to_pick.append(map_item)
+          maps_to_pick_count -= 1
+        if maps_to_pick_count <= 0:
+          break
+    # check if have oils_to_pick_count
+    if oils_to_pick_count > 0:
+      usable_oils_in_tab = self.getUsableOilsFromItems(stash.current_tab_items)
+      for oil_item in usable_oils_in_tab:
+        print(f'[Mapper.manageStashAndInventory] going to pick oil {oil_item.raw}')
+        items_to_pick.append(oil_item)
+        oils_to_pick_count -= oil_item.items_in_stack
+        if oils_to_pick_count <= 0:
+          break
+    # check if have consumables_to_pick
+    if len(consumables_to_pick) != 0:
+      indexes_to_remove = []
+      for key_index in range(len(consumables_to_pick)):
+        print(consumables_to_pick)
+        key = consumables_to_pick[key_index]
+        consumable:str = list(key.keys())[0]
+        need_to_pick = consumables_to_pick[key_index][consumable]
+        consumables_in_current_tab = list(filter(lambda i: i.name == consumable,stash.current_tab_items))
+        consumables_in_current_tab.sort(key=lambda i: i.items_in_stack)
+        for consumable_item in consumables_in_current_tab:
+          items_to_pick.append(consumable_item)
+          consumables_to_pick[key_index][consumable] -= consumable_item.items_in_stack
+          if consumables_to_pick[key_index][consumable] <= 0:
+            indexes_to_remove.append(key_index)
+            break
+
+      for key_index in indexes_to_remove[::-1]: 
+        print(f"removing index")
+        consumables_to_pick.pop(key_index)
+    self.stashUselessItems()
+    self.poe_bot.ui.clickMultipleItems(items_to_pick, random_sleep=False)
+  
+
+
+# In[ ]:
+
+
+key_index
+
+
+# In[ ]:
+
+
+consumables_to_pick
+
+
+# In[ ]:
+
+
+for i in range(len(consumables_to_pick)-1): print(i)
+
+
+# In[13]:
+
+
+sorted_maps
+
+
+# In[ ]:
+
+
+for i in oils_in_inventory: print(i.raw)
+
+
+# In[ ]:
+
+
+s = sorted(oils_in_inventory, key=lambda i: OILS_BY_TIERS.index(i.name), reverse = True)
+for i in s: print(i.raw)
+
+
+# In[14]:
+
 
 
 
@@ -2033,137 +2540,17 @@ while True:
 # In[ ]:
 
 
-plt.imshow(poe_bot.game_data.terrain.currently_passable_area);plt.show()
-plt.imshow(poe_bot.game_data.terrain.currently_passable_area[1034-50:1034+50,311-50:311+50 ]);plt.show()
 
-
-# In[ ]:
-
-
-plt.imshow(poe_bot.game_data.terrain.currently_passable_area);plt.show()
 
 
 # In[ ]:
 
 
-print(arena_center)
-
-
-points = getFourPoints(*arena_center, 70)
-
-run_points = []
-
-for point in points[1:]:
-  line_vals = createLineIteratorWithValues(arena_center, point, poe_bot.game_data.terrain.currently_passable_area)
-  last_point = arena_center
-  # print(line_vals)
-  for line_point in line_vals[10:]:
-    if line_point[-1] != 1.:
-      print(line_point)
-      break
-    last_point = line_point
-  run_points.append([int(last_point[0]), int(last_point[1])])
-  # passable_point = poe_bot.game_data.terrain.checkIfPointPassable(*point)
-
-  print(f'{point} {run_points[-1]}')
-  # if passable_point:
-  #   run_points.append(point)
+consumable
 
 
 # In[ ]:
 
 
-for point in run_points:
-  poe_bot.mover.goToPoint(point,release_mouse_on_end=False, custom_continue_function=lambda *args, **kwargs: False)
 
-
-# In[ ]:
-
-
-press_func = poe_bot.bot_controls.keyboard_pressKey
-release_func = poe_bot.bot_controls.keyboacrd_releaseKey
-
-
-# In[ ]:
-
-
-poe_bot.refreshAll()
-
-
-# In[ ]:
-
-
-plt.imshow(poe_bot.game_data.terrain.terrain_image)
-
-
-# In[ ]:
-
-
-poe_bot.refreshAll()
-plt.imshow(poe_bot.game_data.terrain.terrain_image)
-
-
-# In[ ]:
-
-
-# activate wave
-
-
-# In[ ]:
-
-
-poe_bot.refreshAll()
-poe_bot.game_data.terrain.getCurrentlyPassableArea(dilate_kernel_size=0)
-plt.imshow(poe_bot.game_data.terrain.currently_passable_area);plt.show()
-points = poe_bot.pather.tsp.generatePointsForDiscovery()
-print(points)
-
-
-# In[ ]:
-
-
-bh = ButtonHolder("DIK_E")
-bh.holdFor(12.0)
-
-
-# In[ ]:
-
-
-bh.forceStopPress()
-
-
-# In[ ]:
-
-
-bh.holdFor(10.0)
-
-
-# In[ ]:
-
-
-bh.thread_finished[0] = True
-
-
-# In[ ]:
-
-
-poe_bot.bot_controls.keyboard.pressed
-
-
-# In[ ]:
-
-
-poe_bot.bot_controls.keyboard_pressKey('DIK_F')
-
-
-# In[ ]:
-
-
-poe_bot.bot_controls.keyboard_releaseKey('DIK_F')
-
-
-# In[ ]:
-
-
-"DIK_F" in poe_bot.bot_controls.keyboard.pressed
 
