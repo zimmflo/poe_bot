@@ -175,6 +175,16 @@ public class ResurrectUi_c{
     public List<int> sz { get; set; } // label screen zone x1 x2 y1 y2
 }
 
+public class AnointUi_c{
+    public int v; // visible
+    public List<int> sz { get; set; } // label screen zone x1 x2 y1 y2
+    public List<InventoryObjectCustom_c> o { get; set; } // oils
+    public List<InventoryObjectCustom_c> pi { get; set; } // placed items
+    public List<int> a_b_sz { get; set; } // anoint button zone x1 x2 y1 y2
+    public List<string> t { get; set; } // texts
+
+}
+
 public class RitualUi_c{
     public int rt_b_v { get; set; } // ritual button is_visible
     public List<int> rt_b_sz { get; set; } // ritual button screen zone
@@ -221,6 +231,7 @@ public class SkillsOnBar_c
 {
     public List<int> c_b_u { get; set; } // can_be_used 0 - false 1 - true
     public List<int> cs { get; set; } // casts per 100 seconds
+    public List<int> tu { get; set; } // total uses
     // below if "full"
     public List<string> i_n { get; set; } // internal_name
     public List<List<Dictionary<string, int>>> d { get; set; } // descriptions
@@ -237,6 +248,7 @@ public class PlayerInfo_c
     public List<int> l { get; set; } // life component, [health max,current,reserved, es max,current, reserved, mana max, current, reserved]
     public List<string> b { get; set; } // buffs
     public List<string> db { get; set; } // debuffs
+    public int im { get; set; } // ismoving
     public int lv { get; set; } // lvl
 }
 public class MinimapIcon_c

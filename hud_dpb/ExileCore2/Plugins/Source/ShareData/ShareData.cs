@@ -182,6 +182,9 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
 
             Entity_c entity = new Entity_c();
             entity.i = (int)obj.Id;
+            if (entity.i < 0){
+                continue;
+            }
             entity.p = obj.Path;
             entity.gp = new List<int> { (int)obj.GridPos.X, (int)obj.GridPos.Y };
             entity.wp = new List<int> { (int)obj.BoundsCenterPos.X,(int)obj.BoundsCenterPos.Y,(int)obj.BoundsCenterPos.Z };
@@ -494,7 +497,10 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
             } else if (request.Url.AbsolutePath =="/getMapInfo"){
                 var response = getMapInfo();
                 return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
-            } else if (request.Url.AbsolutePath =="/getEntityIdByPlayerName"){
+            } else if (request.Url.AbsolutePath =="/getAnointUi"){
+                var response = getAnointUi();
+                return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
+            }else if (request.Url.AbsolutePath =="/getEntityIdByPlayerName"){
                 string player_name = request.RawUrl.Split(new [] { "type=" }, StringSplitOptions.None)[1].Split(new [] { "&" }, StringSplitOptions.None)[0];
                 var response = getEntityIdByPlayerName(player_name);
                 return Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
@@ -566,7 +572,6 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
 
         return result;
     }
-
     public InventoryObjectCustom_c getHoveredItemInfo()
     {
         InventoryObjectCustom_c hovered_item = new InventoryObjectCustom_c();
@@ -582,8 +587,6 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
 
         return hovered_item;
     }
-
-
     public GetOpenedStashInfoObject getStashInfo(){
         GetOpenedStashInfoObject response = new GetOpenedStashInfoObject();
         response.status = "closed";
@@ -1087,13 +1090,8 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
         el.ch = new List<NpcDialogueUiChoice_c>();
         var elements_to_iterate = new List<Element>();
         if (GameController.IngameState.IngameUi.ExpeditionNpcDialog.IsVisible == true){
-            var el_rect = GameController.IngameState.IngameUi.ExpeditionNpcDialog.GetClientRect();
-            el.sz = new List<int> {
-                (int)el_rect.X, 
-                (int)(el_rect.X + el_rect.Width), 
-                (int)el_rect.Y, 
-                (int)(el_rect.Y + el_rect.Height), 
-            };
+            // var el_rect = GameController.IngameState.IngameUi.ExpeditionNpcDialog.GetClientRect();
+            el.sz = getListOfIntFromElRect(GameController.IngameState.IngameUi.ExpeditionNpcDialog);
             var dialog_el = GameController.IngameState.IngameUi.ExpeditionNpcDialog.Children[1];
             if (dialog_el.Children[2].IsVisible == true){ // if its a text
                 dialog_el = dialog_el.Children[2].Children[0].Children[2].Children[0].Children[0];
@@ -1113,13 +1111,8 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
                 }
             }
         } else if (GameController.IngameState.IngameUi.NpcDialog.IsVisible == true) {
-            var el_rect = GameController.IngameState.IngameUi.NpcDialog.GetClientRect();
-            el.sz = new List<int> {
-                (int)el_rect.X, 
-                (int)(el_rect.X + el_rect.Width), 
-                (int)el_rect.Y, 
-                (int)(el_rect.Y + el_rect.Height), 
-            };
+            // var el_rect = GameController.IngameState.IngameUi.NpcDialog.GetClientRect();
+            el.sz = getListOfIntFromElRect(GameController.IngameState.IngameUi.NpcDialog);
 
             if (GameController.IngameState.IngameUi.NpcDialog.NpcLineWrapper.ChildCount != 0){
                 foreach (var choice_element in GameController.IngameState.IngameUi.NpcDialog.NpcLineWrapper.Children){
@@ -1144,13 +1137,8 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
                 if (choice_element.ChildCount != 0){
                     NpcDialogueUiChoice_c npc_dialogue_choice = new NpcDialogueUiChoice_c();
                     npc_dialogue_choice.t = choice_element.Children[0].TextNoTags;
-                    var el_rect = choice_element.GetClientRect();
-                    npc_dialogue_choice.sz = new List<int> {
-                        (int)el_rect.X, 
-                        (int)(el_rect.X + el_rect.Width), 
-                        (int)el_rect.Y, 
-                        (int)(el_rect.Y + el_rect.Height), 
-                    };
+                    // var el_rect = choice_element.GetClientRect();
+                    npc_dialogue_choice.sz = getListOfIntFromElRect(choice_element);
                     el.ch.Add(npc_dialogue_choice);
                 }
             }
@@ -1296,6 +1284,52 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
         }
         return el;
     }
+    public AnointUi_c getAnointUi(){
+        AnointUi_c el = new AnointUi_c();
+        el.v = GameController.IngameState.IngameUi.AnointingWindow.IsVisible ? 1 : 0;
+        if (el.v == 0){
+            return el;
+        }
+        var anoint_panel = GameController.IngameState.IngameUi.AnointingWindow.Children[GameController.IngameState.IngameUi.AnointingWindow.Children.Count-1];
+        el.sz = getListOfIntFromElRect(anoint_panel);
+
+        el.o = new List<InventoryObjectCustom_c>();
+        var oils_element = anoint_panel.GetChildAtIndex(4);
+        if (oils_element != null){
+            foreach (var item_parent in oils_element.Children){
+                var item_element = item_parent.GetChildFromIndices([0,1]);
+                if (item_element != null){
+                    var item_obj = convertItem(item_element.Entity);
+                    item_obj.s = getListOfIntFromElRect(item_element);
+                    el.o.Add(item_obj);
+                }
+            }
+        }
+        
+        el.pi = new List<InventoryObjectCustom_c>();
+        var placed_item_element = anoint_panel.GetChildFromIndices([6,1]);
+        if (placed_item_element != null){
+            var item_obj = convertItem(placed_item_element.Entity);
+            item_obj.s = getListOfIntFromElRect(placed_item_element);
+            el.pi.Add(item_obj);
+        }
+        
+        var anoint_button_element = anoint_panel.GetChildAtIndex(5);
+        el.a_b_sz = getListOfIntFromElRect(anoint_button_element);
+
+        el.t = new List<string>();
+        var texts_element = anoint_panel.GetChildAtIndex(3);
+        if (texts_element != null){
+            if (texts_element.Children[1].IsVisible == true){
+                el.t.Add(texts_element.Children[1].TextNoTags);
+            } else if (texts_element.Children[2].TextNoTags != null){
+                el.t.Add(texts_element.Children[2].TextNoTags);
+
+            }
+        }
+        return el;
+    }
+
     public ResurrectUi_c getResurrectUi(){
         ResurrectUi_c el = new ResurrectUi_c();
         el.v = GameController.IngameState.IngameUi.ResurrectPanel.IsVisible ? 1 : 0;
@@ -1607,12 +1641,17 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
         if (player_comp != null){
             player_info.lv = player_comp.Level;
         };
+        var player_actor_comp  = GameController.Game.IngameState.Data.LocalPlayer.GetComponent<Actor>();
+        if (player_actor_comp != null){
+            player_info.im = player_actor_comp.isMoving ? 1 : 0;
+        };
         return player_info;
     }
     public SkillsOnBar_c getSkillBar(bool detailed = false){
         SkillsOnBar_c skill_bars = new SkillsOnBar_c();
         skill_bars.c_b_u = new List<int>();
         skill_bars.cs = new List<int>();
+        skill_bars.tu = new List<int>();
         skill_bars.i_n = new List<string>();
         skill_bars.d = new List<List<Dictionary<string, int>>>();
         foreach (var skill_bar_element in GameController.IngameState.IngameUi.SkillBar.Skills){
@@ -1623,7 +1662,7 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
             }
             skill_bars.c_b_u.Add(can_be_used);
             skill_bars.cs.Add(skill_element.HundredTimesAttacksPerSecond);
-
+            skill_bars.tu.Add(skill_element.TotalUses);
             if (detailed == true){
                 skill_bars.i_n.Add(skill_element.InternalName);
                 var stats_list = new List<Dictionary<string, int>>(); 
