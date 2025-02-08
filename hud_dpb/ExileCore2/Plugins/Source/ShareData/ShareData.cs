@@ -23,6 +23,7 @@ using Stack = ExileCore2.PoEMemory.Components.Stack;
 
 using System.Linq;
 using System.Threading.Tasks;
+using ExileCore2.PoEMemory.Elements;
 
 
 // 111 9 11 0 deli activator thing
@@ -1179,7 +1180,7 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
         el.v = GameController.IngameState.IngameUi.Map.IsVisible ? 1 : 0;
         el.elements = new List<BlueLine_c>();
 
-        foreach (var blue_line in GameController.IngameState.IngameUi.Map.BlueWords.Children){
+        foreach (var blue_line in GameController.IngameState.IngameUi.Map.BlueWords.Children[0].Children){
             BlueLine_c blue_line_obj = new BlueLine_c();
             var el_rect = blue_line.GetClientRect();
             blue_line_obj.sz = new List<int> {
@@ -1371,7 +1372,6 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
     public List<ItemOnGroundLabel_c> getItemsOnGroundLabelsVisible(){
         List<ItemOnGroundLabel_c> visible_labels = new List<ItemOnGroundLabel_c>();
         foreach (var label in GameController.IngameState.IngameUi.ItemsOnGroundLabelElement.LabelsOnGroundVisible){
-
             if (label.ItemOnGround.Path != "Metadata/MiscellaneousObjects/WorldItem") {
                 continue;
             }
@@ -1386,13 +1386,8 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
             };
             var label_element = label.Label; 
             // screen zone
-            var label_element_rect = label_element.GetClientRect(); // label_element_rect
-            visible_label.sz = new List<int> {
-                (int)label_element_rect.X, 
-                (int)(label_element_rect.X + label_element_rect.Width), 
-                (int)label_element_rect.Y, 
-                (int)(label_element_rect.Y + label_element_rect.Height), 
-            };
+            // var label_element_rect = label_element.GetClientRect(); // label_element_rect
+            visible_label.sz = getListOfIntFromElRect(label_element);
 
             var world_item_component = label.ItemOnGround.GetComponent<WorldItem>();
             if (world_item_component != null){
@@ -1412,6 +1407,16 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
                 if (mods_component != null){
                     visible_label.r = mods_component.ItemRarity.ToString();
                 }
+
+                // entity.t = 0;
+                // entity.it = 0;
+                var targetable_comp = item_entity.GetComponent<Targetable>();
+                // if (targetable_comp != null){
+                //     entity.t = targetable_comp.isTargetable ? 1 : 0;
+                //     entity.it = targetable_comp.isTargeted ? 1 : 0;
+                // }
+
+
             }
             
             
