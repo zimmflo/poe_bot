@@ -1411,7 +1411,8 @@ class MapDevice_Poe2(MapDevice):
     # map_obj = random.choice(poe_bot.ui.map_device.avaliable_maps)
     print(f'going to drag to {map_obj.id}')
     orig_id = map_obj.id
-    while True:
+    map_is_in_roi = poe_bot.game_window.isInRoi(map_obj.screen_pos.x, map_obj.screen_pos.y)
+    while map_is_in_roi == False:
       self.update()
       if self.is_opened == False:
         raise poe_bot.raiseLongSleepException('map device closed during dragging to map object')
@@ -1434,7 +1435,8 @@ class MapDevice_Poe2(MapDevice):
       ]
       print(f"roi borders {roi_borders}")
       print(f"borders {borders}")
-      if poe_bot.game_window.isInRoi(map_obj.screen_pos.x, map_obj.screen_pos.y, custom_borders=roi_borders):
+      map_is_in_roi = poe_bot.game_window.isInRoi(map_obj.screen_pos.x, map_obj.screen_pos.y, custom_borders=roi_borders)
+      if map_is_in_roi:
         break
       print(f"map_obj.screen_pos {map_obj.screen_pos.toList()}")
       drag_from = poe_bot.game_window.convertPosXY(map_obj.screen_pos.x, map_obj.screen_pos.y, custom_borders=borders)

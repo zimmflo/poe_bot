@@ -104,6 +104,8 @@ class MapperSettings:
 
   max_map_run_time = 600
 
+  complete_tower_maps = True
+
   force_kill_blue = False
   force_kill_rares = True
 
@@ -180,7 +182,6 @@ class Mapper2(PoeBotComponent):
 
     self.sortWaystones(all_maps)  
     return all_maps
-
   def doPreparations(self):
     '''
     basically just 
@@ -252,6 +253,7 @@ class Mapper2(PoeBotComponent):
             poe_bot.ui.closeAll()
       identifyMaps()
       inventory.open()
+      maps_in_inventory = self.getWaystonesCanUse(source="inventory")
       # alch logic
       if self.settings.waystone_upgrade_to_rare or self.settings.waystone_upgrade_to_rare_force:
         maps_can_alch = list(filter(lambda m: m.corrupted == False and m.rarity == "Normal", maps_in_inventory))
@@ -324,7 +326,7 @@ class Mapper2(PoeBotComponent):
     #TODO sort oils by tier
     OILS_TYPES_CAN_USE = OILS_BY_TIERS[:self.settings.anoint_max_tier]
     oils_can_use = list(filter(lambda i: i.name in OILS_TYPES_CAN_USE, items)) 
-    oils_can_use.sort(key=lambda i: OILS_BY_TIERS.index(i.name), reverse=True)
+    oils_can_use.sort(key=lambda i: OILS_BY_TIERS.index(i.name))
     return oils_can_use
   def activateMap(self):
     '''
@@ -400,6 +402,7 @@ class Mapper2(PoeBotComponent):
     if len(poe_bot.ui.map_device.place_map_window_items) != 0:
       poe_bot.raiseLongSleepException('[Mapper.activateMap] len(poe_bot.ui.map_device.place_map_window_items) != 0 #TODO remove all, test below')
       poe_bot.ui.clickMultipleItems(poe_bot.ui.map_device.place_map_window_items)
+    maps_in_inventory = self.getWaystonesCanUse(source="inventory")
     map_to_run = maps_in_inventory[0]
     print(f'[Mapper.activateMap] going to run map: {map_to_run.raw}')
 
@@ -427,7 +430,7 @@ class Mapper2(PoeBotComponent):
       stash_tab_indexes:List[int] = []
       consumables_to_pick = []
       oils_to_pick_count = 0
-      maps_to_pick_count = random.randint(6,10)
+      maps_to_pick_count = random.randint(max([1, int(self.settings.keep_waystones_in_inventory*0.6)]),self.settings.keep_waystones_in_inventory)
 
 
       all_waystones = self.getWaystonesCanUse()
@@ -767,7 +770,7 @@ class Mapper2(PoeBotComponent):
     #     return True
     
     #TODO sometimes boss spawn can be outside of passable area, or activators for boss
-    map_boss = next( (e for e in self.poe_bot.game_data.entities.unique_entities if e.life.health.current != 0 and e.is_hostile != False and e.isOnPassableZone()), None)
+    map_boss = next( (e for e in self.poe_bot.game_data.entities.unique_entities if e.render_name not in ['Volatile Core'] and e.life.health.current != 0 and e.is_hostile != False and e.isOnPassableZone()), None)
     # if current_area.boss_render_names:
     #   map_boss = next( (e for e in self.poe_bot.game_data.entities.unique_entities if e.life.health.current != 0 and e.render_name in current_area.boss_render_names and e.isOnPassableZone()), None)
     if map_boss:
@@ -849,18 +852,34 @@ class Mapper2(PoeBotComponent):
     rev = bool(random.randint(0,1))
     while time_now < map_finish_time + 1 :
       poe_bot.refreshInstanceData()
-      killed_someone = poe_bot.combat_module.clearLocationAroundPoint({"X":self.poe_bot.game_data.player.grid_pos.x, "Y":self.poe_bot.game_data.player.grid_pos.y},detection_radius=50)
+      point_to_run_around = [self.poe_bot.game_data.player.grid_pos.x, self.poe_bot.game_data.player.grid_pos.y]
+      # make sure it wont activate the tower
+      if self.settings.complete_tower_maps == False:
+        tower_activator_entity = next( (e for e in poe_bot.game_data.entities.all_entities if e.path == "Metadata/MiscellaneousObjects/Endgame/TowerCompletion"), None)
+        if tower_activator_entity:
+          point_to_run_around = poe_bot.game_data.terrain.pointToRunAround(
+          point_to_run_around_x=tower_activator_entity.grid_position.x,
+          point_to_run_around_y=tower_activator_entity.grid_position.y,
+          distance_to_point=75,
+          reversed=rev
+        )
+      killed_someone = poe_bot.combat_module.clearLocationAroundPoint({"X":point_to_run_around[0], "Y":point_to_run_around[1]},detection_radius=50)
       res = self.exploreRoutine()
       if killed_someone is False and res is False:
         point = poe_bot.game_data.terrain.pointToRunAround(
-          point_to_run_around_x=self.poe_bot.game_data.player.grid_pos.x,
-          point_to_run_around_y=self.poe_bot.game_data.player.grid_pos.y,
+          point_to_run_around_x=point_to_run_around[0],
+          point_to_run_around_y=point_to_run_around[1],
           distance_to_point=15,
           reversed=rev
         )
         poe_bot.mover.move(grid_pos_x = point[0], grid_pos_y = point[1])
         poe_bot.refreshInstanceData()
       time_now = time.time()
+
+
+
+      # find point which is far away from
+      # {"ls":[241,312],"p":"Metadata/MiscellaneousObjects/Endgame/TowerCompletion","i":11,"t":1,"b":1,"gp":[553,4020],"wp":[6031,43716,-613],"rn":"Precursor Beacon","et":"IngameIcon"}
 
     # check if we did 3 of 3 or 4of4 rituals, if true, defer\whatever items
     self.settings.do_rituals_buyout_function()
@@ -1182,11 +1201,11 @@ alch_map_if_possible = True
 
 
 
-# In[ ]:
+# In[4]:
 
 
 default_config = {
-  "REMOTE_IP": '172.18.196.148', # z2
+  "REMOTE_IP": '172.27.109.227sd', # z2
   "unique_id": "poe_2_test",
   "build": "EaBallistasEle",
   "password": None,
@@ -1228,7 +1247,7 @@ force_reset_temp = config['force_reset_temp']
 print(f'running aqueduct using: REMOTE_IP: {REMOTE_IP} unique_id: {UNIQUE_ID} max_lvl: {MAX_LVL} chromatics_recipe: {CHROMATICS_RECIPE} force_reset_temp: {force_reset_temp}')
 
 
-# In[ ]:
+# In[5]:
 
 
 poe_bot = Poe2Bot(unique_id = UNIQUE_ID, remote_ip = REMOTE_IP, password=password)
@@ -1238,7 +1257,7 @@ poe_bot.refreshAll()
 poe_bot.mover.setMoveType('wasd')
 
 
-# In[ ]:
+# In[6]:
 
 
 # set up build
@@ -1268,7 +1287,7 @@ poe_bot.combat_module.build = BarrierInvocationInfernalist(poe_bot)
 poe_bot.mover.default_continue_function = poe_bot.combat_module.build.usualRoutine
 
 
-# In[ ]:
+# In[8]:
 
 
 mapper_settings = MapperSettings({})
@@ -1276,11 +1295,12 @@ mapper_settings = MapperSettings({})
 # mapper_settings.do_rituals = True
 # mapper_settings.do_rituals_buyout_function = 
 mapper_settings.high_priority_maps = ["Bluff"]
+mapper_settings.complete_tower_maps = False
 mapper_settings.min_map_tier = 13
 mapper_settings.anoint_maps = True
 
 
-# In[ ]:
+# In[9]:
 
 
 mapper = Mapper2(poe_bot=poe_bot, settings = mapper_settings)
@@ -1339,20 +1359,20 @@ if mapper.settings.waystone_upgrade_to_rare_force:
 poe_bot.loot_picker.loot_filter.special_rules = [isItemHasPickableKey]
 
 
-# In[ ]:
+# In[11]:
 
 
 #TODO make it possible to wrap it into while loop, if ok, move whole mapper to utils/mapper2.py
 mapper.run()
 
 
-# In[25]:
+# In[ ]:
 
 
 raise Exception('Script ended, restart')
 
 
-# In[13]:
+# In[ ]:
 
 
 mapper.doPreparations()
@@ -1364,7 +1384,7 @@ mapper.doPreparations()
 # testing below, wont be executed, debugging only
 
 
-# In[ ]:
+# In[15]:
 
 
 poe_bot.refreshAll()
@@ -1382,14 +1402,14 @@ mapper.isMapCompleted()
 mapper.cache.stage, mapper.cache.map_completed
 
 
-# In[17]:
+# In[ ]:
 
 
 mapper.cache.map_completed = False
 mapper.cache.save()
 
 
-# In[12]:
+# In[ ]:
 
 
 mapper.cache.stage = 2
@@ -1414,7 +1434,7 @@ hasattr(poe_bot.game_data.terrain, "currently_passable_area")
 poe_bot.game_data.terrain.currently_passable_area
 
 
-# In[15]:
+# In[ ]:
 
 
 poe_bot.ui.ritual_ui.update()
@@ -1553,7 +1573,7 @@ for k in waystone_tiers_sorted:
   poe_bot.ui.clickMultipleItems(waystones_by_tier[k])
 
 
-# In[1]:
+# In[ ]:
 
 
 # ritual defer logic
@@ -1767,7 +1787,7 @@ print(energy_gain)
 poe_bot.refreshAll()
 
 
-# In[13]:
+# In[ ]:
 
 
 import matplotlib.pyplot as plt 
@@ -1775,7 +1795,7 @@ from utils.utils import getFourPoints
 from utils.utils import createLineIteratorWithValues
 
 
-# In[30]:
+# In[ ]:
 
 
 poe_bot.loot_picker.loot_filter.special_rules = []
@@ -1788,7 +1808,7 @@ poe_bot.refreshAll()
 poe_bot.bot_controls.disconnect()
 
 
-# In[17]:
+# In[ ]:
 
 
 interesting_entities = []
@@ -2260,7 +2280,7 @@ if need_to_modify_maps:
   self.poe_bot.ui.closeAll()
 
 
-# In[13]:
+# In[ ]:
 
 
 def manageStashAndInventory(self:Mapper2, pick_consumables = False):
@@ -2333,7 +2353,7 @@ manageStashAndInventory(mapper, pick_consumables=True)
 inventory.update()
 
 
-# In[12]:
+# In[ ]:
 
 
 self = mapper
@@ -2512,7 +2532,7 @@ consumables_to_pick
 for i in range(len(consumables_to_pick)-1): print(i)
 
 
-# In[13]:
+# In[ ]:
 
 
 sorted_maps
@@ -2531,7 +2551,7 @@ s = sorted(oils_in_inventory, key=lambda i: OILS_BY_TIERS.index(i.name), reverse
 for i in s: print(i.raw)
 
 
-# In[14]:
+# In[ ]:
 
 
 

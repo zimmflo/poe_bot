@@ -5577,6 +5577,11 @@ class LoopController:
       active_flask_effects_count = len(list(filter(lambda e: e == "flask_effect_life", poe_bot.game_data.player.buffs)))
       print(f"[BarrierInvocationInfernalist.useFlasks] flask_effects_active_count: {active_flask_effects_count}")
 
+      pressed_smth = False
+      if pressed_smth == False and is_in_demon_form == False:
+        print(f'[BarrierInvocationInfernalist.useFlasks] need to activate demon form')
+        if self.build.demon_form.canUse():
+          self.build.demon_form.use()
 
       if (is_ignited or barrier_loop_running) and time.time() > self.build.can_use_flask_after:
         if active_flask_effects_count < 5:
@@ -5590,7 +5595,6 @@ class LoopController:
       else:
         self.build.auto_flasks.useFlasks()
       barrier_invocation_key = self.build.barrier_invocation.skill_key 
-      pressed_smth = False
       if self.build.stop_spamming_condition_func() == False:
       # if poe_bot.game_data.player.life.energy_shield.getPercentage() > 0.75:
         if barrier_loop_running == False and is_barrier_charged == False:
@@ -5602,22 +5606,6 @@ class LoopController:
             print(f'pressing button {barrier_invocation_key}')
             poe_bot.bot_controls.keyboard_pressKey(barrier_invocation_key, False)
             pressed_smth = True
-
-
-        # print(f"[BarrierInvocationInfernalist.useFlasks] can cast barrier invocation")
-        # if time.time() - 2 > self.build.barrier_charged_at and is_barrier_charged == False:
-        #   print(f'barrier is not charged')
-        #   self.build.curse.use()
-        #   # self.barrier_charged_at = time.time()
-        # else:
-        #   barrier_loop_running = True
-        #   if (barrier_invocation_key in poe_bot.bot_controls.keyboard.pressed) == False:
-        #     print(f'pressing button {barrier_invocation_key}')
-        #     poe_bot.bot_controls.keyboard_pressKey(barrier_invocation_key, False)
-        #     pressed_smth = True
-        #   print(f"barrier total uses {barrier_uses} {barrier_uses_history}")
-        #   if is_barrier_charged == True:
-        #     self.build.barrier_charged_at = time.time()
       else:
         print(f'seems like hp is < {self.build.es_thresh_for_loop} cant do loop thing')
         if (self.build.barrier_invocation.skill_key  in poe_bot.bot_controls.keyboard.pressed):
@@ -5626,10 +5614,7 @@ class LoopController:
           pressed_smth = True
           barrier_loop_running = False
 
-      if pressed_smth == False and is_in_demon_form == False:
-        print(f'[BarrierInvocationInfernalist.useFlasks] need to activate demon form')
-        if self.build.demon_form.canUse():
-          self.build.demon_form.use()
+
 
       if barrier_loop_running:
         if all(expected_change_history[-3:]):
