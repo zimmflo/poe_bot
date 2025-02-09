@@ -79,23 +79,23 @@ class MapperSettings:
   
   session_duration = '24h'
 
-  default_discovery_percent = 0.93 # % for which itll explore the area
+  default_discovery_percent = 0.94 # % for which itll explore the area
   discovery_percent = default_discovery_percent # % for which itll explore the area
   
-  prefered_tier:str = "15+"
-  min_map_tier = 0
-  max_map_tier = 17
+  prefered_tier:str = "3+"
+  min_map_tier = 1
+  max_map_tier = 8
   prefer_high_tier = True
 
   #TODO keep consumables same as maps.ipynb
   keep_consumables = []
-  keep_waystones_in_inventory = 5
+  keep_waystones_in_inventory = 3
 
   low_priority_maps = []
   high_priority_maps = []
 
   waystone_upgrade_to_rare = True 
-  waystone_upgrade_to_rare_force = True #TODO identify + alch|| identify + aug + regal 
+  waystone_upgrade_to_rare_force = False #TODO identify + alch|| identify + aug + regal 
   waystone_vaal = False ##TODO if map is rare, not corrupted and identified vaal it
 
   anoint_maps = False
@@ -106,7 +106,7 @@ class MapperSettings:
 
   complete_tower_maps = True
 
-  force_kill_blue = False
+  force_kill_blue = True
   force_kill_rares = True
 
   force_deli = False
@@ -1257,7 +1257,7 @@ poe_bot.refreshAll()
 poe_bot.mover.setMoveType('wasd')
 
 
-# In[6]:
+# In[ ]:
 
 
 # set up build
@@ -1276,8 +1276,11 @@ poe_bot.mover.setMoveType('wasd')
 # poe_bot.combat_module.build.auto_flasks.life_flask_recovers_es = True
 # poe_bot.combat_module.build.auto_flasks.hp_thresh = 0.70
 
-from utils.combat import BarrierInvocationInfernalist
-poe_bot.combat_module.build = BarrierInvocationInfernalist(poe_bot)
+#from utils.combat import BarrierInvocationInfernalist
+#poe_bot.combat_module.build = BarrierInvocationInfernalist(poe_bot)
+
+from utils.combat import InfernalistMinion
+poe_bot.combat_module.build = InfernalistMinion(poe_bot)
 
 
 # In[7]:
@@ -1287,7 +1290,7 @@ poe_bot.combat_module.build = BarrierInvocationInfernalist(poe_bot)
 poe_bot.mover.default_continue_function = poe_bot.combat_module.build.usualRoutine
 
 
-# In[8]:
+# In[ ]:
 
 
 mapper_settings = MapperSettings({})
@@ -1295,9 +1298,8 @@ mapper_settings = MapperSettings({})
 # mapper_settings.do_rituals = True
 # mapper_settings.do_rituals_buyout_function = 
 mapper_settings.high_priority_maps = ["Bluff"]
-mapper_settings.complete_tower_maps = False
-mapper_settings.min_map_tier = 13
-mapper_settings.anoint_maps = True
+mapper_settings.complete_tower_maps = True
+
 
 
 # In[9]:
