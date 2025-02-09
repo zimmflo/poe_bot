@@ -1,21 +1,9 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using ExileCore2;
-using ExileCore2.PoEMemory.Elements;
-using ExileCore2.PoEMemory.MemoryObjects;
-using ExileCore2.Shared;
-using ExileCore2.Shared.Helpers;
-using GameOffsets2;
-using GameOffsets2.Native;
-
-using System.Collections.Generic;
-using Newtonsoft.Json;
-using System;
-using System.Reflection;
 using System.Text;
+using ExileCore2;
+using ExileCore2.PoEMemory.MemoryObjects;
+
 
 class DataBuilder
 {
@@ -68,8 +56,6 @@ class DataBuilder
         return sb;
     }
 
-
-
     public static List<float> getScreenPos(int grid_x, int grid_y)
     {
         List<float> coords = new List<float>();
@@ -82,14 +68,8 @@ class DataBuilder
 
     }
 
-
-
     internal static ShareDataContent updatedData = new ShareDataContent();
 
-    public static string ContentAsJson()
-    {
-        return JsonConvert.SerializeObject(updatedData, Formatting.Indented);
-    }
 
     public static Dictionary<string, ShareDataEntity> BuildItemsOnGroundLabels(GameController Controller)
     {
