@@ -31,7 +31,7 @@ def send_request(sock, path, params=None):
 
 def parse_response(response):
     if not response:
-        return {}  # Leer lassen, damit "failed" nicht gesetzt wird
+        return {}
     try:
         return json.loads(response)
     except json.JSONDecodeError:
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     results = []
     
     if len(sys.argv) > 1:
-        ENDPOINTS = [sys.argv[1]]  # Nutze den übergebenen Endpunkt
+        ENDPOINTS = [sys.argv[1]]
     else:
         ENDPOINTS = [
             "/getData",
