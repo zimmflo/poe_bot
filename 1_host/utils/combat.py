@@ -5743,6 +5743,24 @@ class BarrierInvocationInfernalist(Build):
 
     self.dodge = DodgeRoll(self.poe_bot)
 
+  def generateStacks(self,stacks_count = 60):
+    poe_bot = self.poe_bot
+    demon_stacks = poe_bot.combat_module.build.getDemonFormStacks()
+    while demon_stacks < stacks_count:
+      poe_bot.refreshInstanceData()
+      demon_stacks = self.getDemonFormStacks()
+      print(f'[generateDemonFormStacks] generating stacks, {demon_stacks}/{stacks_count} ')
+      is_barrier_charged = "invocation_skill_ready" in poe_bot.game_data.player.buffs
+      
+      if demon_stacks < 5 or is_barrier_charged == False:
+        self.useFlasks()
+      else:
+        if poe_bot.game_data.player.life.energy_shield.getPercentage() < 0.65:
+          self.auto_flasks.useFlasks()
+        else:
+          self.barrier_invocation.use()
+        time.sleep(0.75)
+
   def getDemonFormStacks(self):
     poe_bot = self.poe_bot
     return len(list(filter(lambda b: b == "demon_form_buff", poe_bot.game_data.player.buffs)))
