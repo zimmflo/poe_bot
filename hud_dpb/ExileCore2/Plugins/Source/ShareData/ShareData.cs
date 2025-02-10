@@ -1242,13 +1242,13 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
                     visible_label.r = mods_component.ItemRarity.ToString();
                 }
 
-                // entity.t = 0;
-                // entity.it = 0;
-                var targetable_comp = item_entity.GetComponent<Targetable>();
-                // if (targetable_comp != null){
-                //     entity.t = targetable_comp.isTargetable ? 1 : 0;
-                //     entity.it = targetable_comp.isTargeted ? 1 : 0;
-                // }
+                visible_label.t = 0;
+                visible_label.it = 0;
+                var targetable_comp = label.ItemOnGround.GetComponent<Targetable>();
+                if (targetable_comp != null){
+                    visible_label.t = targetable_comp.isTargetable ? 1 : 0;
+                    visible_label.it = targetable_comp.isTargeted ? 1 : 0;
+                }
 
 
             }

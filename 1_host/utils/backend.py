@@ -173,6 +173,9 @@ class Backend:
 
     def getVisibleLabels(self):
         return self._endpoint_request('getVisibleLabels')
+    
+    def getItemsOnGroundLabelsVisible(self):
+        return self._endpoint_request('getItemsOnGroundLabelsVisible')
 
     def getVisibleLabelOnGroundEntities(self):
         return self._endpoint_request('getVisibleLabelOnGroundEntities')

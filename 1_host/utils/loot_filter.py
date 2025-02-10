@@ -26,6 +26,7 @@ class PickableItemLabel():
     self.rarity = raw['r']
     self.grid_position = PosXY(raw['gp'][0], raw['gp'][1])
     self.links_raw = raw['l']
+    self.displayed_name = raw['dn']
 
   def distanceToPlayer(self):
     self.distance_to_player = dist( (self.poe_bot.game_data.player.grid_pos.x, self.poe_bot.game_data.player.grid_pos.y), (self.grid_position.x, self.grid_position.y))
@@ -94,7 +95,7 @@ class LootPicker:
     # print(f'#collectLoot f at {time.time()}')
     print(f'[LootPicker.collectLoot] stopped, picking items nearby {pickable_item}')
     # time.sleep(random.randint(10,20)/100)
-    drop_availiable = self.pickupDropV6(pickable_items_sorted)
+    drop_availiable = self.pickupDropV7(pickable_items_sorted)
     poe_bot.refreshInstanceData(reset_timer=True)
     poe_bot.last_action_time = 0
     poe_bot.combat_module.build.staticDefence()
@@ -245,6 +246,123 @@ class LootPicker:
         print(f'label with id {label_to_click_id} doesnt exist anymore or 2 labels with same id')
         break
       label_to_click = visible_labels[0]
+    print(f'[LootPicker.pickupDropV{pickup_drop_version}] return at {time.time()}')
+    return True
+
+  def pickupDropV7(
+    self,
+    items_can_pick:List[PickableItemLabel]
+    ):
+    '''
+    returns True if drop available and picking it
+    if no drop returns False
+    '''
+    poe_bot = self.poe_bot
+    pickup_drop_version = 7
+    print(f'[LootPicker.pickupDropV{pickup_drop_version}] call at {time.time()}')
+    nearest_pickable_item = items_can_pick[0]
+    print(f'[LootPicker.pickupDropV{pickup_drop_version}] items_can_pick {list(map(lambda i: i.raw, items_can_pick))}')
+    items_can_pick_at_the_same_time = list(filter(lambda i: i.grid_position.x == nearest_pickable_item.grid_position.x and i.grid_position.y == nearest_pickable_item.grid_position.y, items_can_pick)) 
+    items_can_pick_at_the_same_time_ids = list(map(lambda i: i.id, items_can_pick_at_the_same_time))
+    print(f'[LootPicker.pickupDropV{pickup_drop_version}] items_can_pick_at_the_same_time {list(map(lambda i: i.raw, items_can_pick_at_the_same_time))}')
+    visible_labels = poe_bot.backend.getItemsOnGroundLabelsVisible()
+    visible_labels = list(filter(lambda label: label['id'] in items_can_pick_at_the_same_time_ids and label["sz"][0] > 100 and label["sz"][1] < poe_bot.game_window.width - 100 and label["sz"][2] > 100 and label["sz"][3] < poe_bot.game_window.height - 100, visible_labels))
+    if len(visible_labels) == 0:
+      print('no drop to pick')
+      return False
+    print(f'[LootPicker.pickupDropV{pickup_drop_version}] picking up the drop got {len(visible_labels)} objects')
+    print(f'[LootPicker.pickupDropV{pickup_drop_version}] picking up the drop got {visible_labels} labels')
+    visible_labels_sorted = sorted(visible_labels, key = lambda label: dist(( (label["sz"][0] + label["sz"][1])/2, (label["sz"][2] + label["sz"][3])/2), (poe_bot.game_window.center_point[0], poe_bot.game_window.center_point[1])))
+    label_to_click = visible_labels_sorted.pop(0)
+    label_to_click_id = label_to_click["id"]
+    print(f'[LootPicker.pickupDropV{pickup_drop_version}] nearest label to center is {label_to_click}')
+    
+    def getLabelCenterPos(label_to_click):
+      coords_to_click = ( int( (label_to_click["sz"][0] + label_to_click["sz"][1])/2 ), int( (label_to_click["sz"][2] + label_to_click["sz"][3])/2 ) )
+      pos_x, pos_y = poe_bot.convertPosXY(coords_to_click[0],coords_to_click[1])
+      return (pos_x, pos_y)
+    # firstly hover on item smooth and wait till executed, and then start doing spam
+    label_center = getLabelCenterPos(label_to_click)
+    poe_bot.bot_controls.mouse.setPosSmooth(label_center[0],label_center[1], wait_till_executed=True)
+    last_targeted_item_id = 0
+    # {id: clicked_count}
+    clicked_items_ids = {
+
+    } 
+
+    for iter_num in range(4):
+      print(f"clicked_items_ids {clicked_items_ids}")
+      visible_labels = poe_bot.backend.getItemsOnGroundLabelsVisible()
+      targeted_item_can_pick = next( (i_raw for i_raw in visible_labels if i_raw["id"] in items_can_pick_at_the_same_time_ids and i_raw["it"] == 1), None)
+      # targeted_items_can_pick = list(filter(lambda i_raw: i_raw["id"] in items_can_pick_at_the_same_time_ids and i_raw["it"] == 1, visible_labels))
+      if iter_num != 0 and targeted_item_can_pick:
+        print(f'[LootPicker.pickupDropV{pickup_drop_version}] targeted_item_can_pick {targeted_item_can_pick}')
+        item_id = targeted_item_can_pick["id"]
+        targeted_twice = last_targeted_item_id == item_id
+        last_targeted_item_id = item_id
+        if targeted_twice:
+          clicked_times = clicked_items_ids.get(item_id, 0)
+          if clicked_times == 0:
+            clicked_items_ids[item_id] = 1
+          else:
+            clicked_items_ids[item_id] += 1
+
+          if clicked_items_ids[item_id] == 3:
+            print(f'[LootPicker.pickupDropV{pickup_drop_version}] clicked 2 times already')
+            if len(visible_labels_sorted) == 0:
+              print(f'[LootPicker.pickupDropV{pickup_drop_version}] breaking cos no more labels')
+              break
+            else:
+              label_to_click = visible_labels_sorted.pop(0)
+            targeted_item_can_pick = None
+          else:
+            poe_bot.bot_controls.mouse.pressAndRelease(wait_till_executed=True, delay=random.uniform(0.03, 0.06))
+
+      if targeted_item_can_pick == None:
+        last_targeted_item_id = 0
+        updated_label = next( (i_raw for i_raw in visible_labels if i_raw["id"] == label_to_click["id"]), None)
+        if updated_label:
+          print(f'[LootPicker.pickupDropV{pickup_drop_version}] going to hover on label {updated_label}')
+          label_center = getLabelCenterPos(updated_label)
+          poe_bot.bot_controls.mouse.setPos(label_center[0],label_center[1], wait_till_executed=True)
+        else:
+          break
+
+
+    # for iter_num in range(4):
+    #   print(f"clicked_items_ids {clicked_items_ids}")
+    #   visible_labels = poe_bot.backend.getItemsOnGroundLabelsVisible()
+    #   targeted_item_can_pick = next( (i_raw for i_raw in visible_labels if i_raw["id"] in items_can_pick_at_the_same_time_ids and i_raw["it"] == 1), None)
+    #   # targeted_items_can_pick = list(filter(lambda i_raw: i_raw["id"] in items_can_pick_at_the_same_time_ids and i_raw["it"] == 1, visible_labels))
+    #   if iter_num != 0 and targeted_item_can_pick:
+    #     print(f'[LootPicker.pickupDropV{pickup_drop_version}] targeted_item_can_pick {targeted_item_can_pick}')
+    #     item_id = targeted_item_can_pick["id"]
+    #     clicked_times = clicked_items_ids.get(item_id, 0)
+    #     if clicked_times == 0:
+    #       clicked_items_ids[item_id] = 1
+    #     else:
+    #       clicked_items_ids[item_id] += 1
+        
+    #     if clicked_items_ids[item_id] == 3:
+    #       print(f'[LootPicker.pickupDropV{pickup_drop_version}] clicked 2 times already')
+    #       if len(visible_labels_sorted) == 0:
+    #         print(f'[LootPicker.pickupDropV{pickup_drop_version}] breaking cos no more labels')
+    #         break
+    #       else:
+    #         label_to_click = visible_labels_sorted.pop(0)
+    #       targeted_item_can_pick = None
+    #     if targeted_item_can_pick:
+    #       poe_bot.bot_controls.mouse.pressAndRelease(wait_till_executed=True, delay=random.uniform(0.03, 0.06))
+    #   if targeted_item_can_pick == None:
+    #     updated_label = next( (i_raw for i_raw in visible_labels if i_raw["id"] == label_to_click["id"]), None)
+    #     if updated_label:
+    #       print(f'[LootPicker.pickupDropV{pickup_drop_version}] going to hover on label {updated_label}')
+    #       label_center = getLabelCenterPos(updated_label)
+    #       poe_bot.bot_controls.mouse.setPos(label_center[0],label_center[1], wait_till_executed=True)
+    #       last_targeted_item_id = 0
+
+    #     else:
+    #       break
     print(f'[LootPicker.pickupDropV{pickup_drop_version}] return at {time.time()}')
     return True
 
