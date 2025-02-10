@@ -1361,37 +1361,40 @@ class MapDevice_Poe2(MapDevice):
 
     poe_bot = self.poe_bot
     self.update()
-    if self.place_map_window_opened == False:
-      poe_bot.raiseLongSleepException('checking if activate button is active, but dropdown is not visible')
-    for corner in self.activate_button_pos.getCorners():
-      if poe_bot.game_window.isInRoi(*corner) == False:
-        dropdown_zone = self.place_map_window_screenzone
-        pos_x = int((dropdown_zone.x1 + dropdown_zone.x2)/2)
-        pos_y = dropdown_zone.y1 + 10
-        pos_x, pos_y = poe_bot.game_window.convertPosXY(pos_x, pos_y, safe=False)
-        center_x, center_y = poe_bot.game_window.convertPosXY(*poe_bot.game_window.center_point, safe=False)
-        center_y = center_y - 100
-        poe_bot.bot_controls.mouse.drag([pos_x, pos_y], [pos_x, center_y])
-        time.sleep(random.uniform(0.35,0.75))
-        self.update()
-        if any(list(map(lambda c: poe_bot.game_window.isInRoi(*c) == False, self.activate_button_pos.getCorners()))):
-          poe_bot.raiseLongSleepException(f'corner {corner} is outside of roi')
-        break
-    # return super().checkIfActivateButtonIsActive(hsv_range = [0, 0, 0, 255, 30, 180])
-    x1 = self.activate_button_pos.x1 +5
-    x2 = self.activate_button_pos.x2 -5
-    y1 = self.activate_button_pos.y1 +5
-    y2 = self.activate_button_pos.y2 -5
-    game_img = poe_bot.getImage()
-    activate_button_img = game_img[y1:y2, x1:x2]
-    # print('activate_button_img')
-    # plt.imshow(activate_button_img);plt.show()
-    # plt.imshow(third_skill);plt.show()
-    sorted_img = sortByHSV(activate_button_img, 0, 0, 0, 255, 30, 180)
-    # plt.imshow(sorted_img);plt.show()
-    activate_button_is_active = not len(sorted_img[sorted_img != 0]) > 30
-    # print(sorted_img[sorted_img != 0])
-    print(f"activate_button_is_active {activate_button_is_active}")
+    activate_button_is_active = True
+    if len(self.place_map_window_items) != 1:
+      activate_button_is_active = False
+    # if self.place_map_window_opened == False:
+    #   poe_bot.raiseLongSleepException('checking if activate button is active, but dropdown is not visible')
+    # for corner in self.activate_button_pos.getCorners():
+    #   if poe_bot.game_window.isInRoi(*corner) == False:
+    #     dropdown_zone = self.place_map_window_screenzone
+    #     pos_x = int((dropdown_zone.x1 + dropdown_zone.x2)/2)
+    #     pos_y = dropdown_zone.y1 + 10
+    #     pos_x, pos_y = poe_bot.game_window.convertPosXY(pos_x, pos_y, safe=False)
+    #     center_x, center_y = poe_bot.game_window.convertPosXY(*poe_bot.game_window.center_point, safe=False)
+    #     center_y = center_y - 100
+    #     poe_bot.bot_controls.mouse.drag([pos_x, pos_y], [pos_x, center_y])
+    #     time.sleep(random.uniform(0.35,0.75))
+    #     self.update()
+    #     if any(list(map(lambda c: poe_bot.game_window.isInRoi(*c) == False, self.activate_button_pos.getCorners()))):
+    #       poe_bot.raiseLongSleepException(f'corner {corner} is outside of roi')
+    #     break
+    # # return super().checkIfActivateButtonIsActive(hsv_range = [0, 0, 0, 255, 30, 180])
+    # x1 = self.activate_button_pos.x1 +5
+    # x2 = self.activate_button_pos.x2 -5
+    # y1 = self.activate_button_pos.y1 +5
+    # y2 = self.activate_button_pos.y2 -5
+    # game_img = poe_bot.getImage()
+    # activate_button_img = game_img[y1:y2, x1:x2]
+    # # print('activate_button_img')
+    # # plt.imshow(activate_button_img);plt.show()
+    # # plt.imshow(third_skill);plt.show()
+    # sorted_img = sortByHSV(activate_button_img, 0, 0, 0, 255, 30, 180)
+    # # plt.imshow(sorted_img);plt.show()
+    # activate_button_is_active = not len(sorted_img[sorted_img != 0]) > 30
+    # # print(sorted_img[sorted_img != 0])
+    # print(f"activate_button_is_active {activate_button_is_active}")
     return activate_button_is_active
   def getRoi(self):
     poe_bot = self.poe_bot
