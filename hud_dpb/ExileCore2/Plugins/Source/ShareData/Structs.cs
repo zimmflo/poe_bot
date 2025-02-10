@@ -300,6 +300,9 @@ public class ItemOnGroundLabel_c
     public string a; // animated property metadata // itemonground -> components worlditem -> itementity -> components renderitem -> resourcepath
     public List<string> l; // links ['rb', 'gb']
     public string r; // rarity
+    public int t { get; set; } // is targetable
+    public int it { get; set; } // is_targeted
+    public string dn { get; set; } // displayed name
 }
 public class QuestState_c{
     public string id; // id

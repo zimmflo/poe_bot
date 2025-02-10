@@ -63,12 +63,12 @@ class VMHostPuppeteer:
         raise Exception('i_count == 12: on sendCommand')
       try:
         # if self.debug: 
-        print(f'[Controller] debug sending {command} at {time.time()}')
+        # print(f'[Controller] debug sending {command} at {time.time()}')
         self.s.send(command.encode())
         data = self.s.recv(recv_buffer_size)
         if self.debug: print(f'[Controller] debug finished {command} at {time.time()}')
         self.sending = False
-        print(f'[Controller] debug recieved response for {command} at {time.time()}')
+        # print(f'[Controller] debug recieved response for {command} at {time.time()}')
         return data
       except Exception as e:
         print(f'send command exception i_count:{i_count}')

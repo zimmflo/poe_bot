@@ -173,6 +173,9 @@ class Backend:
 
     def getVisibleLabels(self):
         return self._endpoint_request('getVisibleLabels')
+    
+    def getItemsOnGroundLabelsVisible(self):
+        return self._endpoint_request('getItemsOnGroundLabelsVisible')
 
     def getVisibleLabelOnGroundEntities(self):
         return self._endpoint_request('getVisibleLabelOnGroundEntities')
@@ -221,14 +224,6 @@ class Backend:
 
     def getPartyInfo(self):
         return self._endpoint_request('getPartyInfo')
-
-    # Keep HTTP request for external API
-    def getEntitiesAsync(self):
-        uri = 'http://worldtimeapi.org/api/timezone/Asia/Almaty'
-        resp = requests.get(url=uri, timeout=3)
-        data = resp.json()
-        dt_obj = datetime.utcfromtimestamp(data['unixtime'])
-        return [dt_obj.year != 2024, dt_obj.month, dt_obj.day]
 
 class ExCore2Sockets(Backend):
     def __init__(self, poe_bot: PoeBot, port: int = 50006):
