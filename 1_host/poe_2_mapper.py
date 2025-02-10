@@ -151,6 +151,11 @@ class Mapper2(PoeBotComponent):
       self.keep_consumables.append({"Vaal Orb": 10})
   #TODO write logic
   def sortWaystones(self, items: List[Item]):
+    if self.settings.waystone_upgrade_to_rare or self.settings.waystone_upgrade_to_rare_force:
+      items.sort(key=lambda i: i.rarity == "Normal", reverse=True)
+      items.sort(key=lambda i: i.rarity == "Rare", reverse=True)
+    if self.settings.anoint_maps or self.settings.anoint_maps_force:
+      items.sort(key=lambda i: len(i.getDeliriumMods()) != 0, reverse=True)
     items.sort(key=lambda i: i.map_tier, reverse=self.settings.prefer_high_tier)
   def filterWaystonesCanRun(self, items: List[Item], sorted = False):
     waystones_can_run = list(filter(lambda i: 
