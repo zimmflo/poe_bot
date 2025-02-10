@@ -1221,8 +1221,8 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
             var label_element = label.Label; 
             // screen zone
             // var label_element_rect = label_element.GetClientRect(); // label_element_rect
+            visible_label.dn = label_element.TextNoTags;
             visible_label.sz = getListOfIntFromElRect(label_element);
-
             var world_item_component = label.ItemOnGround.GetComponent<WorldItem>();
             if (world_item_component != null){
                 var item_entity = world_item_component.ItemEntity;
@@ -1249,18 +1249,10 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
                     visible_label.t = targetable_comp.isTargetable ? 1 : 0;
                     visible_label.it = targetable_comp.isTargeted ? 1 : 0;
                 }
-
-
             }
-            
-            
-            
             visible_labels.Add(visible_label);
-
         }
-
         return visible_labels;
-
     }
     public List<VisibleLabel> getVisibleLabels(){
         List<VisibleLabel> visible_labels = new List<VisibleLabel>();
