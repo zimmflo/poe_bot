@@ -1264,6 +1264,7 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
     }
     public List<VisibleLabel> getVisibleLabels(){
         List<VisibleLabel> visible_labels = new List<VisibleLabel>();
+
         foreach (var label in GameController.IngameState.IngameUi.ItemsOnGroundLabelElement.LabelsOnGroundVisible){
             VisibleLabel visible_label = new VisibleLabel();
             visible_label.texts = new List<string>();
@@ -1354,7 +1355,23 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
                     visible_labels.Add(atlar_label);
                 }
                 continue;
-             }else if (label.ItemOnGround.Path == "Metadata/Terrain/Leagues/Necropolis/Objects/NecropolisCorpseMarker") {
+             } else if (label.ItemOnGround.Path == "Metadata/Terrain/Gallows/Leagues/Delirium/Act1Town/Objects/DeliriumnatorAct1") {
+                VisibleLabel deli_activator_label = new VisibleLabel();
+                deli_activator_label.texts = new List<string>();
+                var texts_parent_element = label.Label.GetChildAtIndex(0);
+                if (texts_parent_element != null){
+                    foreach (var item in texts_parent_element.Children){
+                        if (item.Text != null){
+                            deli_activator_label.texts.Add(item.Text);                        
+                        }
+                    }
+                }
+                deli_activator_label.p = label.ItemOnGround.Path;
+                deli_activator_label.id = (int)label.ItemOnGround.Id;
+                deli_activator_label.sz = getListOfIntFromElRect(label.Label);
+                visible_labels.Add(deli_activator_label);
+                continue;
+             } else if (label.ItemOnGround.Path == "Metadata/Terrain/Leagues/Necropolis/Objects/NecropolisCorpseMarker") {
                 VisibleLabel necropolis_label = new VisibleLabel();
                 necropolis_label.texts = new List<string>();
 
