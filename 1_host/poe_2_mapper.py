@@ -83,8 +83,8 @@ class MapperSettings:
   discovery_percent = default_discovery_percent # % for which itll explore the area
   
   prefered_tier:str = "3+"
-  min_map_tier = 1
-  max_map_tier = 8
+  min_map_tier = 4
+  max_map_tier = 7
   prefer_high_tier = True
 
   #TODO keep consumables same as maps.ipynb
@@ -1308,7 +1308,7 @@ mapper_settings.complete_tower_maps = True
 mapper = Mapper2(poe_bot=poe_bot, settings = mapper_settings)
 
 
-# In[10]:
+# In[ ]:
 
 
 # set up loot filter
@@ -1351,11 +1351,11 @@ def addRenderToLootfilter(target_item:str, render_art:str, min_count = 20):
   ARTS_TO_PICK.append(render_art)
 
 poe_bot.ui.inventory.update()
-if mapper.settings.waystone_upgrade_to_rare:
-  addRenderToLootfilter("Orb of Alchemy", "Art/2DItems/Currency/CurrencyUpgradeToRare.dds")
-if mapper.settings.waystone_upgrade_to_rare_force:
-  addRenderToLootfilter("Orb of Augmentation", "Art/2DItems/Currency/CurrencyAddModToMagic.dds")
-  addRenderToLootfilter("Regal Orb", "Art/2DItems/Currency/CurrencyUpgradeMagicToRare.dds")
+#if mapper.settings.waystone_upgrade_to_rare:
+addRenderToLootfilter("Orb of Alchemy", "Art/2DItems/Currency/CurrencyUpgradeToRare.dds")
+#if mapper.settings.waystone_upgrade_to_rare_force:
+addRenderToLootfilter("Orb of Augmentation", "Art/2DItems/Currency/CurrencyAddModToMagic.dds")
+addRenderToLootfilter("Regal Orb", "Art/2DItems/Currency/CurrencyUpgradeMagicToRare.dds")
 
 # remove line below in case you want it to pick ALL items
 poe_bot.loot_picker.loot_filter.special_rules = [isItemHasPickableKey]

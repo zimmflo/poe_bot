@@ -5369,7 +5369,7 @@ class PathfinderPoisonConc2(Build):
         poe_bot.mover.move(*go_back_point)
 
 
-
+      mover.stopMoving
 
       if current_time  > start_time + max_kill_time_sec:
         print('exceed time')
@@ -5456,9 +5456,7 @@ class GenericBuild2(Build):
         print('[build.killUsual] getting closer in killUsual ')
         break
 
-      skill_used = self.useBuffs()
       entity_to_kill.hover()
-
 
       if entity_to_kill.distance_to_player > keep_distance:
         print('[build.killUsual] kiting around')
@@ -5998,7 +5996,7 @@ class InfernalistMinion(Build):
       #  poe_bot.mover.move(*go_back_point)
       #  return True
       
-      extremley_close_entities = list(filter(lambda e: e.distance_to_player < 10, really_close_enemies))        
+      extremley_close_entities = list(filter(lambda e: e.distance_to_player < 20, really_close_enemies))        
       enemies_on_way = list(filter(lambda e: e.distance_to_player < 10 and getAngle(p0, p1, (e.grid_position.x, e.grid_position.y), abs_180=True) < 45, really_close_enemies))
       if extremley_close_entities and enemies_on_way:
         go_back_point = self.poe_bot.pather.findBackwardsPoint(p1, p0)
@@ -6007,15 +6005,14 @@ class InfernalistMinion(Build):
         return True
         
       if enemies_on_way:
-        go_back_point = self.poe_bot.pather.findBackwardsPoint(p1, p0)
-        poe_bot.mover.move(*go_back_point)
+        point = self.poe_bot.game_data.terrain.pointToRunAround(really_close_enemies[0].grid_position.x, really_close_enemies[0].grid_position.y, 40)
+        mover.move(grid_pos_x = point[0], grid_pos_y = point[1])
         return True
       
       if really_close_enemies:
-        #point = self.poe_bot.game_data.terrain.pointToRunAround(really_close_enemies[0].grid_position.x, really_close_enemies[0].grid_position.y, 40, reversed=reversed_run)
-        #mover.move(grid_pos_x = point[0], grid_pos_y = point[1])
-        go_back_point = self.poe_bot.pather.findBackwardsPoint(p1, p0)
-        poe_bot.mover.move(*go_back_point)
+        #go_back_point = self.poe_bot.pather.findBackwardsPoint(p1, p0)
+        #poe_bot.mover.move(*go_back_point)
+        mover.stopMoving()
         return True      
     return False
   
@@ -6036,7 +6033,7 @@ class InfernalistMinion(Build):
     self.useFlasks()
     
     min_distance = 70 # distance which is ok to start attacking
-    keep_distance = 15 # if our distance is smth like this, kite
+    keep_distance = 40 # if our distance is smth like this, kite
 
     entity_to_kill = next((e for e in poe_bot.game_data.entities.attackable_entities if e.id == entity_to_kill_id), None)
     if not entity_to_kill:
@@ -6115,13 +6112,8 @@ class InfernalistMinion(Build):
 
       print('kiting')
       if distance_to_entity > keep_distance:
-        print('away')
-        p0 = (entity_to_kill.grid_position.x, entity_to_kill.grid_position.y)
-        p1 = (poe_bot.game_data.player.grid_pos.x, poe_bot.game_data.player.grid_pos.y)
-        go_back_point = self.poe_bot.pather.findBackwardsPoint(p1, p0)
-        poe_bot.mover.move(*go_back_point)
+        mover.stopMoving()
       else:
-        print('around')
         point = self.poe_bot.game_data.terrain.pointToRunAround(entity_to_kill.grid_position.x, entity_to_kill.grid_position.y, kite_distance+random.randint(-3,3), check_if_passable=True, reversed=reversed_run)
         mover.move(grid_pos_x = point[0], grid_pos_y = point[1])
         
