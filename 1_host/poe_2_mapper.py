@@ -82,9 +82,9 @@ class MapperSettings:
   default_discovery_percent = 0.94 # % for which itll explore the area
   discovery_percent = default_discovery_percent # % for which itll explore the area
   
-  prefered_tier:str = "3+"
-  min_map_tier = 4
-  max_map_tier = 7
+  prefered_tier:str = "5+"
+  min_map_tier = 1
+  max_map_tier = 8
   prefer_high_tier = True
 
   #TODO keep consumables same as maps.ipynb
@@ -1320,47 +1320,30 @@ mapper = Mapper2(poe_bot=poe_bot, settings = mapper_settings)
 from utils.loot_filter import PickableItemLabel
 
 ARTS_TO_PICK = [
-  "Art/2DItems/Currency/CurrencyModValues.dds", # divine
-  "Art/2DItems/Currency/CurrencyGemQuality.dds", # gemcutter
-  "Art/2DItems/Currency/CurrencyRerollRare.dds", # chaos
-  "Art/2DItems/Currency/CurrencyAddModToRare.dds", # exalt
-  "Art/2DItems/Currency/CurrencyUpgradeToUnique.dds", # chance
-  "Art/2DItems/Currency/CurrencyRerollSocketNumbers03.dds",
-  "Art/2DItems/Currency/CurrencyRerollSocketNumbers02.dds",
-  "Art/2DItems/Currency/CurrencyDuplicate.dds",
   "Art/2DItems/Maps/DeliriumSplinter.dds",
+  "Art/2DItems/Maps/"
 ]
 
 # big piles of gold
 for tier in range(2,17):
   ARTS_TO_PICK.append(f"Art/2DItems/Currency/Ruthless/CoinPileTier{tier}.dds")
 # waystones
-for tier in range(mapper.settings.min_map_tier,mapper.settings.max_map_tier):
+# for tier in range(mapper.settings.min_map_tier,mapper.settings.max_map_tier):
 # for tier in range(1,17):
-  ARTS_TO_PICK.append(f"Art/2DItems/Maps/EndgameMaps/EndgameMap{tier}.dds")
+# ARTS_TO_PICK.append(f"Art/2DItems/Maps/EndgameMaps/EndgameMap{tier}.dds")
 
 
 def isItemHasPickableKey(item_label:PickableItemLabel):
   if item_label.icon_render in ARTS_TO_PICK:
     return True
-  elif "Art/2DItems/Currency/Essence/" in item_label.icon_render:
+  elif item_label.icon_render.startswith("Art/2DItems/Currency/") and not "/Ruthless/" in item_label.icon_render:
     return True
-  elif "Art/2DItems/Currency/DistilledEmotions" in item_label.icon_render:
+  elif item_label.icon_render.startswith("Art/2DItems/Maps/EndgameMaps/"):
     return True
   return False
 
-def addRenderToLootfilter(target_item:str, render_art:str, min_count = 20):
-  items = list(filter(lambda i: i.name == target_item, poe_bot.ui.inventory.items))
-  if len(items) != 0 and sum(list(map(lambda i:i.items_in_stack, items))) > min_count:
-    return
-  ARTS_TO_PICK.append(render_art)
 
 poe_bot.ui.inventory.update()
-#if mapper.settings.waystone_upgrade_to_rare:
-addRenderToLootfilter("Orb of Alchemy", "Art/2DItems/Currency/CurrencyUpgradeToRare.dds")
-#if mapper.settings.waystone_upgrade_to_rare_force:
-addRenderToLootfilter("Orb of Augmentation", "Art/2DItems/Currency/CurrencyAddModToMagic.dds")
-addRenderToLootfilter("Regal Orb", "Art/2DItems/Currency/CurrencyUpgradeMagicToRare.dds")
 
 # remove line below in case you want it to pick ALL items
 poe_bot.loot_picker.loot_filter.special_rules = [isItemHasPickableKey]

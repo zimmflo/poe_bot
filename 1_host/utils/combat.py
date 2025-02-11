@@ -5369,8 +5369,6 @@ class PathfinderPoisonConc2(Build):
         poe_bot.mover.move(*go_back_point)
 
 
-      mover.stopMoving
-
       if current_time  > start_time + max_kill_time_sec:
         print('exceed time')
         break
@@ -5917,7 +5915,7 @@ class InfernalistMinion(Build):
     print(f'flame_wall_index {flame_wall_index}')
     self.flame_wall = None
     if flame_wall_index != False:
-      self.flame_wall = SkillWithDelay(poe_bot=poe_bot, skill_index=flame_wall_index, min_delay=random.uniform(0.3, 0.5), display_name="flame_wall", can_use_earlier=False)
+      self.flame_wall = SkillWithDelay(poe_bot=poe_bot, skill_index=flame_wall_index, min_delay=random.uniform(0.5, 1), display_name="flame_wall", can_use_earlier=False)
 
     self.dodge_roll = DodgeRoll(poe_bot=poe_bot)
     
@@ -5966,7 +5964,6 @@ class InfernalistMinion(Build):
       
       corpses = poe_bot.game_data.entities.getCorpsesArountPoint(poe_bot.game_data.player.grid_pos.x, poe_bot.game_data.player.grid_pos.y, 35)
       if corpses:
-        
         p0 = (mover.grid_pos_to_step_x, mover.grid_pos_to_step_y)
         p1 = (poe_bot.game_data.player.grid_pos.x, poe_bot.game_data.player.grid_pos.y)
         corpses = list(filter(lambda e: getAngle(p0, p1, (e.grid_position.x, e.grid_position.y), abs_180=True) < search_angle, corpses))
@@ -5981,16 +5978,16 @@ class InfernalistMinion(Build):
         self.unearth.use(updated_entity=entity_to_unearth)
         return True
       
-      nearby_enemies = list(filter(lambda e: e.distance_to_player < 50 and e.isInRoi(), poe_bot.game_data.entities.attackable_entities))
+      nearby_enemies = list(filter(lambda e: e.distance_to_player < 90 and e.isInRoi() and e.is_hostile , poe_bot.game_data.entities.attackable_entities))
       print(f'nearby_enemies: {nearby_enemies}')
-      really_close_enemies = list(filter(lambda e: e.distance_to_player < 35,nearby_enemies))
+      really_close_enemies = list(filter(lambda e: e.distance_to_player < 45,nearby_enemies))
       
       enemy_to_attack = None
       if len(really_close_enemies) != 0:
         enemy_to_attack = really_close_enemies[0]
       elif len(nearby_enemies):
         nearby_enemies = sorted(nearby_enemies, key=lambda e: e.distance_to_player)
-        nearby_enemies = list(filter(lambda e: e.isInLineOfSight() is True, nearby_enemies))
+        #nearby_enemies = list(filter(lambda e: e.isInLineOfSight() is True, nearby_enemies))
         if len(nearby_enemies) != 0:
           enemy_to_attack = nearby_enemies[0]
 
@@ -6006,6 +6003,16 @@ class InfernalistMinion(Build):
         if self.minion_sniper_gas_arrow and self.minion_sniper_gas_arrow.canUse() and self.minion_sniper_gas_arrow.last_use_time + attacking_skill_delay < time.time():
           self.minion_sniper_gas_arrow.use(updated_entity=enemy_to_attack, wait_for_execution=False)
           
+        # Get nearby allies
+        nearby_allies = [e for e in poe_bot.game_data.entities.all_entities if not e.is_hostile and e.distance_to_player < 60 and e.grid_position]
+        if nearby_allies:
+          try:
+            middle_x = sum(e.grid_position.x for e in nearby_allies) / len(nearby_allies)
+            middle_y = sum(e.grid_position.y for e in nearby_allies) / len(nearby_allies)
+            mover.move(middle_x, middle_y)
+          except Exception as e:
+            pass
+
       p0 = (mover.grid_pos_to_step_x, mover.grid_pos_to_step_y)
       p1 = (poe_bot.game_data.player.grid_pos.x, poe_bot.game_data.player.grid_pos.y)
       
@@ -6013,27 +6020,35 @@ class InfernalistMinion(Build):
       #  go_back_point = self.poe_bot.pather.findBackwardsPoint(p1, p0)
       #  poe_bot.mover.move(*go_back_point)
       #  return True
+
+      extremley_close_entities = list(filter(lambda e: e.distance_to_player < 15, nearby_enemies))        
+      enemies_on_way = list(filter(lambda e: e.distance_to_player < 45 and getAngle(p0, p1, (e.grid_position.x, e.grid_position.y), abs_180=True) < 35, nearby_enemies))
       
-      extremley_close_entities = list(filter(lambda e: e.distance_to_player < 20, really_close_enemies))        
-      enemies_on_way = list(filter(lambda e: e.distance_to_player < 10 and getAngle(p0, p1, (e.grid_position.x, e.grid_position.y), abs_180=True) < 45, really_close_enemies))
-      if extremley_close_entities and enemies_on_way:
+      if extremley_close_entities:
         go_back_point = self.poe_bot.pather.findBackwardsPoint(p1, p0)
-        poe_bot.mover.move(*go_back_point)
+        mover.move(*go_back_point)
         self.dodge_roll.use(wait_for_execution=False)
         return True
-        
-      if enemies_on_way:
-        point = self.poe_bot.game_data.terrain.pointToRunAround(really_close_enemies[0].grid_position.x, really_close_enemies[0].grid_position.y, 40)
-        mover.move(grid_pos_x = point[0], grid_pos_y = point[1])
+      elif enemies_on_way:
+        nearby_allies = [e for e in poe_bot.game_data.entities.all_entities if not e.is_hostile and e.distance_to_player < 60 and e.grid_position]
+        if nearby_allies:
+          try:
+            middle_x = sum(e.grid_position.x for e in nearby_allies) / len(nearby_allies)
+            middle_y = sum(e.grid_position.y for e in nearby_allies) / len(nearby_allies)
+            mover.move(middle_x, middle_y)
+            return True
+          except Exception as e:
+            pass
+          
+      #elif really_close_enemies or enemies_on_way and enemies_on_way[0].distance_to_player < 35:
+      #  go_back_point = self.poe_bot.pather.findBackwardsPoint(p1, p0)
+      #  mover.move(*go_back_point)
+      #  return True
+      elif enemy_to_attack is not None:
+        #point = self.poe_bot.game_data.terrain.pointToRunAround(enemy_to_attack.grid_position.x, enemy_to_attack.grid_position.y, 40, reversed=random.choice([True, False]))
+        #mover.move(grid_pos_x = point[0], grid_pos_y = point[1])
         return True
-      
-      if really_close_enemies:
-        #go_back_point = self.poe_bot.pather.findBackwardsPoint(p1, p0)
-        #poe_bot.mover.move(*go_back_point)
-        mover.stopMoving()
-        return True      
-    return False
-  
+
   def prepareToFight(self, entity: Entity):
     print(f'[InfernalistMinion.prepareToFight] call {time.time()}')
     self.poe_bot.refreshInstanceData()
@@ -6041,7 +6056,7 @@ class InfernalistMinion(Build):
     return True
   def useFlasks(self):
     self.auto_flasks.useFlasks()
-  def killUsual(self, entity:Entity, is_strong = False, max_kill_time_sec = random.uniform(0.5,1.5), *args, **kwargs):
+  def killUsual(self, entity:Entity, is_strong = False, max_kill_time_sec = random.randint(200,300)/10, *args, **kwargs):
     print(f'#build.killUsual {entity}')
     poe_bot = self.poe_bot
     mover = self.mover
@@ -6050,9 +6065,14 @@ class InfernalistMinion(Build):
 
     self.useFlasks()
     
-    min_distance = 70 # distance which is ok to start attacking
-    keep_distance = 40 # if our distance is smth like this, kite
-
+    min_distance = 90 # distance which is ok to start attacking
+    keep_distance = 55 # if our distance is smth like this, kite
+    critical_distance = 15
+    distance_range = 5
+    
+    start_time = time.time()
+    poe_bot.last_action_time = 0
+    
     entity_to_kill = next((e for e in poe_bot.game_data.entities.attackable_entities if e.id == entity_to_kill_id), None)
     if not entity_to_kill:
       print('cannot find desired entity to kill')
@@ -6073,12 +6093,8 @@ class InfernalistMinion(Build):
     if entity_to_kill.isInLineOfSight() is False:
       print('entity_to_kill.isInLineOfSight() is False')
       return False
-
-    start_time = time.time()
+    
     entity_to_kill.hover(wait_till_executed=False)
-    poe_bot.last_action_time = 0
-    kite_distance = random.randint(15,25)
-    reversed_run = random.choice([True, False])
 
     while True:
       skill_used = False
@@ -6098,6 +6114,8 @@ class InfernalistMinion(Build):
         print('getting closer in killUsual ')
         break
       current_time = time.time()
+      
+      #TODO: some logic how and when to use skills, currently -> if ememy then use skill
 
       if skill_used is False and self.flame_wall and self.flame_wall.canUse():
         alive_srs_nearby = list(filter(lambda e: not e.is_hostile and e.life.health.current != 0 and e.distance_to_player < 150 and "Metadata/Monsters/RagingSpirit/RagingSpiritPlayerSummoned" in e.path , self.poe_bot.game_data.entities.all_entities))
@@ -6127,18 +6145,53 @@ class InfernalistMinion(Build):
       if skill_used is False and self.minion_arconist_dd and self.minion_arconist_dd.canUse():
         if self.minion_arconist_dd.use(updated_entity=entity_to_kill, wait_for_execution=False) == True:
           skill_used = True
-
-      print('kiting')
-      if distance_to_entity > keep_distance:
-        mover.stopMoving()
-      else:
-        point = self.poe_bot.game_data.terrain.pointToRunAround(entity_to_kill.grid_position.x, entity_to_kill.grid_position.y, kite_distance+random.randint(-3,3), check_if_passable=True, reversed=reversed_run)
-        mover.move(grid_pos_x = point[0], grid_pos_y = point[1])
+      
+      
+      p0 = (entity_to_kill.grid_position.x, entity_to_kill.grid_position.y)
+      p1 = (poe_bot.game_data.player.grid_pos.x, poe_bot.game_data.player.grid_pos.y)
+      
+      if distance_to_entity < critical_distance:
+        # distance_to_entity is below the critical distance
+        go_back_point = self.poe_bot.pather.findBackwardsPoint(p1, p0)
+        mover.move(*go_back_point)
+        self.dodge_roll.use(wait_for_execution=False)
         
-
+      
+      if distance_to_entity < keep_distance - distance_range:
+        # distance_to_entity is below the range
+        go_back_point = self.poe_bot.pather.findBackwardsPoint(p1, p0)
+        mover.move(*go_back_point)
+        
+      
+      # Calculate middlepoint of nearby allies and move there
+      nearby_allies = [e for e in poe_bot.game_data.entities.all_entities if not e.is_hostile and e.distance_to_player < 80 and e.grid_position]
+      if nearby_allies:
+        try:
+          middle_x = sum(e.grid_position.x for e in nearby_allies) / len(nearby_allies)
+          middle_y = sum(e.grid_position.y for e in nearby_allies) / len(nearby_allies)
+          mover.move(middle_x, middle_y)
+        except Exception as e:
+          pass
+      
+      #elif distance_to_entity > keep_distance + distance_range:
+        # distance_to_entity is above the range
+        #mover.goToPoint(p1)
+        #mover.goToEntity(entity_to_kill, keep_distance)
+        #point = self.poe_bot.game_data.terrain.pointToRunAround(entity_to_kill.grid_position.x, entity_to_kill.grid_position.y, distance_range, check_if_passable=True, reversed=random.choice([True, False]))
+        #mover.move(grid_pos_x = point[0], grid_pos_y = point[1])
+      #else:
+        # distance_to_entity is within the range
+        #mover.goToPoint(p1)
+        #break
+        #mover.goToEntity(entity_to_kill, keep_distance)
+        
+      #point = self.poe_bot.game_data.terrain.pointToRunAround(entity_to_kill.grid_position.x, entity_to_kill.grid_position.y, kite_distance+random.randint(-3,3), check_if_passable=True, reversed=reversed_run)
+      #mover.move(grid_pos_x = point[0], grid_pos_y = point[1])
+        
       if current_time  > start_time + max_kill_time_sec:
         print('exceed time')
         break
+
     return True
 
 
