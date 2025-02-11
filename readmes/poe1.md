@@ -1,4 +1,7 @@
+
 # poe1
+current state - abandoned, if youre willing to use it, use first commits, its still working there
+
 ## history
 3.19 originally it was a heist runner:
 - https://youtu.be/l6Xw_sdK7p8
