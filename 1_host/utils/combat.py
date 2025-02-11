@@ -6004,7 +6004,7 @@ class InfernalistMinion(Build):
           self.minion_sniper_gas_arrow.use(updated_entity=enemy_to_attack, wait_for_execution=False)
           
         # Get nearby allies
-        nearby_allies = [e for e in poe_bot.game_data.entities.all_entities if not e.is_hostile and e.distance_to_player < 60 and e.grid_position]
+        nearby_allies = [e for e in poe_bot.game_data.entities.all_entities if not e.is_hostile and e.distance_to_player < 60 and e.grid_position and e.life.health.current != 0]
         if nearby_allies:
           try:
             middle_x = sum(e.grid_position.x for e in nearby_allies) / len(nearby_allies)
@@ -6030,7 +6030,7 @@ class InfernalistMinion(Build):
         self.dodge_roll.use(wait_for_execution=False)
         return True
       elif enemies_on_way:
-        nearby_allies = [e for e in poe_bot.game_data.entities.all_entities if not e.is_hostile and e.distance_to_player < 60 and e.grid_position]
+        nearby_allies = [e for e in poe_bot.game_data.entities.all_entities if not e.is_hostile and e.distance_to_player < 60 and e.grid_position and e.life.health.current != 0]
         if nearby_allies:
           try:
             middle_x = sum(e.grid_position.x for e in nearby_allies) / len(nearby_allies)
@@ -6164,7 +6164,7 @@ class InfernalistMinion(Build):
         
       
       # Calculate middlepoint of nearby allies and move there
-      nearby_allies = [e for e in poe_bot.game_data.entities.all_entities if not e.is_hostile and e.distance_to_player < 80 and e.grid_position]
+      nearby_allies = [e for e in poe_bot.game_data.entities.all_entities if not e.is_hostile and e.distance_to_player < 60 and e.grid_position and e.life.health.current != 0]
       if nearby_allies:
         try:
           middle_x = sum(e.grid_position.x for e in nearby_allies) / len(nearby_allies)
