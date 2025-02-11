@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Net.Sockets;
 using System.IO;
+using System.Net.Http;
 
 using ExileCore2;
 using ExileCore2.PoEMemory;
@@ -15,21 +16,19 @@ using ExileCore2.PoEMemory.MemoryObjects;
 using ExileCore2.Shared.Enums;
 using GameOffsets2.Native;
 using Stack = ExileCore2.PoEMemory.Components.Stack;
-
 // 111 9 11 0 deli activator thing
 
 namespace ShareData;
 public class ShareData : BaseSettingsPlugin<ShareDataSettings>
 {
-
     private static bool ServerIsRunning = false;
     private const int DefaultServerPort = 50000;
-
     public override bool Initialise()
     {
         GameController.LeftPanel.WantUse(() => Settings.Enable);
         int ServerPort = GetServerPort();
         Task.Run(() => ServerRestartEvent());
+        Task.Run(() => StartHttpServer()); // Start the HTTP server
         return true;
     }
     private int GetServerPort()
@@ -51,6 +50,76 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
         }
 
         return Port;
+    }
+    private async Task StartHttpServer()
+    {
+        int httpPort = 50005;
+        HttpListener listener = new HttpListener();
+        listener.Prefixes.Add($"http://*:{httpPort}/");
+        listener.Start();
+        DebugWindow.LogMsg($"HTTP server started on port {httpPort}...");
+
+        while (true)
+        {
+            HttpListenerContext context = await listener.GetContextAsync();
+            _ = HandleHttpRequestAsync(context); // Handle each HTTP request asynchronously
+        }
+    }
+    private async Task HandleHttpRequestAsync(HttpListenerContext context)
+    {
+        try
+        {
+            string rawRequest = context.Request.Url.LocalPath;
+            string query = context.Request.Url.Query;
+
+            string response = ProcessRequest(rawRequest + query);
+
+            byte[] buffer = Encoding.UTF8.GetBytes(response);
+            context.Response.ContentLength64 = buffer.Length;
+            await context.Response.OutputStream.WriteAsync(buffer, 0, buffer.Length);
+            context.Response.OutputStream.Close();
+        }
+        catch (Exception ex)
+        {
+            DebugWindow.LogError($"HTTP request error: {ex}");
+        }
+    }
+    private async Task ServerRestartEvent()
+    {
+        int serverPort = 50006;
+        var listener = new TcpListener(IPAddress.Any, serverPort);
+        listener.Start();
+        DebugWindow.LogMsg($"TCP server started on port {serverPort}...");
+
+        while (true)
+        {
+            var client = await listener.AcceptTcpClientAsync();
+            _ = HandleClientAsync(client); // Handle each client asynchronously
+        }
+    }
+    private async Task HandleClientAsync(TcpClient client)
+    {
+        try
+        {
+            using (client)
+            using (var stream = client.GetStream())
+            using (var reader = new StreamReader(stream, Encoding.UTF8))
+            using (var writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true })
+            {
+                while (true)
+                {
+                    string request = await reader.ReadLineAsync();
+                    if (request == null) break; // Client disconnected
+
+                    string response = ProcessRequest(request);
+                    await writer.WriteLineAsync(response);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugWindow.LogError($"Client error: {ex}");
+        }
     }
     public static byte WalkableValue(byte[] data, int bytesPerRow, long c, long r)
     {
@@ -373,7 +442,6 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
         }
         return awake_entities;
     }
-
     public List<string> TraverseElementsBFS(Element root)
     {
         var result = new List<string>();
@@ -623,7 +691,6 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
 
         return el;
     }
-
     public RitualUi_c getRitualUi(){
         RitualUi_c ritual_ui = new RitualUi_c();
         ritual_ui.v = 0;
@@ -702,7 +769,6 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
 
         return ritual_ui;
     }
-
     public AuctionHouseUi_c getAuctionHouseUi(){
         AuctionHouseUi_c auction_house_ui = new AuctionHouseUi_c();
         var auction_house_element = GameController.IngameState.IngameUi.CurrencyExchangePanel;
@@ -788,7 +854,6 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
         // current orders
         return auction_house_ui;
     }
-
     public List<int> getListOfIntFromElRect(Element el){
         var el_rect = el.GetClientRect();
         return  new List<int> {
@@ -798,7 +863,6 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
             (int)(el_rect.Y + el_rect.Height), 
         };
     }
-
     public List<MinimapIcon_c> getMinimapIcons(){
         List<MinimapIcon_c> awake_entities = new List<MinimapIcon_c>();
         foreach (var obj in GameController.EntityListWrapper.Entities)
@@ -1164,7 +1228,6 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
         }
         return el;
     }
-
     public ResurrectUi_c getResurrectUi(){
         ResurrectUi_c el = new ResurrectUi_c();
         el.v = GameController.IngameState.IngameUi.ResurrectPanel.IsVisible ? 1 : 0;
@@ -1741,7 +1804,6 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
         return map_device_info;
 
     }
-    
     public List<string> getPreloadedFiles(){
         List<string> preloaded_files_arr = new List<string>();
         var memory = GameController.Memory;
@@ -1855,45 +1917,6 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
         return response;
 
     }
-    private async Task ServerRestartEvent()
-    {
-        int serverPort = 50006;
-        var listener = new TcpListener(IPAddress.Any, serverPort);
-        listener.Start();
-        DebugWindow.LogMsg($"TCP server started on port {serverPort}...");
-
-        while (true)
-        {
-            var client = await listener.AcceptTcpClientAsync();
-            _ = HandleClientAsync(client); // Handle each client asynchronously
-        }
-    }
-
-    private async Task HandleClientAsync(TcpClient client)
-    {
-        try
-        {
-            using (client)
-            using (var stream = client.GetStream())
-            using (var reader = new StreamReader(stream, Encoding.UTF8))
-            using (var writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true })
-            {
-                while (true)
-                {
-                    string request = await reader.ReadLineAsync();
-                    if (request == null) break; // Client disconnected
-
-                    string response = ProcessRequest(request);
-                    await writer.WriteLineAsync(response);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            DebugWindow.LogError($"Client error: {ex}");
-        }
-    }
-
     private string ProcessRequest(string rawRequest)
     {
         DebugWindow.LogMsg($"Received request: {rawRequest}");
