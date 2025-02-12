@@ -6,7 +6,10 @@ set unique_id=poe2_test
 set build_name=InfernalistMinion
 set hostname=WIN-POE1
 
+<<<<<<< HEAD
 REM if you want to use the ip, then REM the next line and -- set remote_ip=
+=======
+>>>>>>> 93cef9fed39ea00e30a3239c8fc6f1235b8e2ea3
 for /f "tokens=2 delims=[]" %%a in ('ping -n 1 %hostname% ^| findstr "["') do set remote_ip=%%a
 
 TITLE %machine% %remote_ip% %unique_id% %predefined_strategy% %build_name%
