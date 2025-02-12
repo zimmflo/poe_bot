@@ -10,7 +10,7 @@ OR
 - copy 0_guest/Plugins folder inside your exilecore2 instance
 
 ## Important:
-- be sure to disable firewall and disable turning off the monitor, if not sure how to do that, run utils/0_preset.bat
+- be sure to disable firewall and disable turning off the monitor
 - be sure to set the game resolution to 1024x768, otherwise it may cause unexpected behaiviour
 - if you have vpn, make sure that you dont pass connections through ports 50006,50007
 
@@ -22,7 +22,7 @@ OR
 <!-- install VC 2015 Redistributable https://www.microsoft.com/en-US/download/details.aspx?id=48145 -->
 
 ## Important:
-- be sure to disable firewall and disable turning off the monitor, if not sure how to do that, run utils/0_preset.bat
+- be sure to disable firewall and disable turning off the monitor
 
 
 # Usage
