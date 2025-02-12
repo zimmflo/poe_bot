@@ -1,0 +1,3 @@
+indent-width = 2
+unsafe-fixes = true
+line-length = 150

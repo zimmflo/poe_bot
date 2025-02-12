@@ -1,5 +1,10 @@
 ## 0_guest
 
-this is basically a tool to control inputs of your remote machine
+This tool controls the vm.
 
-at the same time, you may run it locally, but if it'll grab your mouse control in while loop youre doomed. gl
+install python and libraries with: install_python_libs.bat
+
+install core and copy hud with: install_ex2_hud.bat
+otherwise copy the "Plugins" folder inside your ExCore2 folder.
+
+to start this run: start.bat
