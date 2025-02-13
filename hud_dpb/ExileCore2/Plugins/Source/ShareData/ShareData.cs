@@ -33,7 +33,7 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
         int ServerPort = GetServerPort();
         Task.Run(() => ServerRestartEvent());
         Task.Run(() => StartHttpServer()); // Start the HTTP server
-        // Task.Run(() => startUpdatingCache()); // cache
+        Task.Run(() => startUpdatingCache()); // cache
         return true;
     }
     private int GetServerPort()
@@ -1965,24 +1965,24 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
                 case "/getData":
                     string requestType = ExtractQueryParameter(query, "type", "partial");
 
-                    // if (requestType == "full"){
-                    //     return SerializeData(getData(requestType));
-                    // } else {
-                    //     // Thread-safe access to the last item in the list
-                    //     string data;
-                    //     lock (dataTempLock)
-                    //     {
-                    //         data = data_cache[data_cache.Count - 1];
-                    //         // if (data_cache.Count > 0)
-                    //         // {
-                    //         // }
-                    //     }
-                    //     return data;
+                    if (requestType == "full"){
+                        return SerializeData(getData(requestType));
+                    } else {
+                        // Thread-safe access to the last item in the list
+                        string data;
+                        lock (dataTempLock)
+                        {
+                            data = data_cache[data_cache.Count - 1];
+                            // if (data_cache.Count > 0)
+                            // {
+                            // }
+                        }
+                        return data;
 
-                    // }
+                    }
 
 
-                    return SerializeData(getData(requestType));
+                    // return SerializeData(getData(requestType));
 
                 case "/getLocationOnScreen":
                     int x = int.Parse(ExtractQueryParameter(query, "x"));
