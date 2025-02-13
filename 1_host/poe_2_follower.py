@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[ ]:
 
 
 import time
@@ -13,7 +13,7 @@ from utils.gamehelper import Poe2Bot, Entity
 from utils.combat import AutoFlasks
 
 
-# In[2]:
+# In[ ]:
 
 
 notebook_dev = False
@@ -22,7 +22,7 @@ poe_bot_class = Poe2Bot
 poe_bot: poe_bot_class
 
 
-# In[3]:
+# In[ ]:
 
 
 default_config = {
@@ -56,7 +56,7 @@ for key in default_config.keys():
 print(f'config to run {config}')
 
 
-# In[4]:
+# In[ ]:
 
 
 REMOTE_IP = config['REMOTE_IP'] # REMOTE_IP
@@ -66,7 +66,7 @@ force_reset_temp = config['force_reset_temp']
 print(f'running follower using: REMOTE_IP: {REMOTE_IP} unique_id: {UNIQUE_ID} force_reset_temp: {force_reset_temp}')
 
 
-# In[5]:
+# In[ ]:
 
 
 #TODO to ui.PartyUi
@@ -102,7 +102,7 @@ def getTeleportButtonArea(poe_bot:Poe2Bot, party_member_to_follow) -> UiElement:
   return UiElement(poe_bot, Posx1x2y1y2(*party_member_area))
 
 
-# In[6]:
+# In[ ]:
 
 
 poe_bot = Poe2Bot(unique_id = UNIQUE_ID, remote_ip = REMOTE_IP, password=password)
@@ -123,7 +123,7 @@ poe_bot.mover.default_continue_function = mover_default_func
 
 
 
-# In[7]:
+# In[ ]:
 
 
 # settings
@@ -139,13 +139,13 @@ auto_flasks.life_flask_recovers_es = True
 auto_flasks.hp_thresh = 0.75
 
 
-# In[8]:
+# In[ ]:
 
 
 # 
 
 
-# In[9]:
+# In[ ]:
 
 
 entity_to_follow:Entity = None
@@ -181,7 +181,7 @@ while True:
     continue
 
 
-  id_to_follow = poe_bot.backend.doRequest(f'{poe_bot.backend.endpoint}/getEntityIdByPlayerName?type={ign_to_follow}&')
+  id_to_follow = poe_bot.backend.getEntityIdByPlayerName(ign_to_follow)
   # check if party member to follow in diff loc and portal to that loc is somewhere around
   if id_to_follow == None:
     if poe_bot.game_data.invites_panel_visible == True:
@@ -236,108 +236,4 @@ while True:
 
 
 raise 404
-
-
-# In[48]:
-
-
-party_raw = poe_bot.backend.getPartyInfo()
-party_raw
-
-
-# In[49]:
-
-
-party_member_to_follow = party_raw['party_members'][0]
-
-
-# In[34]:
-
-
-
-
-
-# In[75]:
-
-
-
-
-
-# In[ ]:
-
-
-checkIfCanTeleportToPartyMember(party_member_to_follow)
-
-
-# In[77]:
-
-
-poe_bot.refreshAll()
-
-
-# In[78]:
-
-
-party_member_to_follow_element = getTeleportButtonArea(poe_bot, party_member_to_follow)
-
-
-# In[ ]:
-
-
-party_member_to_follow_element.click()
-
-
-# In[74]:
-
-
-party_member_to_follow_element.screen_zone.toList()
-
-
-# In[41]:
-
-
-import matplotlib.pyplot as plt
-
-print('poe_bot._generateColorfulImage')
-game_img = poe_bot.getImage()
-print('game_img')
-plt.imshow(game_img);plt.show()
-party_leader_img = game_img[party_member_to_follow['sz'][2]:party_member_to_follow['sz'][3], party_member_to_follow['sz'][0]:party_member_to_follow['sz'][1]]
-plt.imshow(party_leader_img);plt.show()
-teleport_to_img = party_leader_img[30:43, 5:17]
-plt.imshow(teleport_to_img);plt.show()
-sorted_img = sortByHSV(teleport_to_img, 76, 118, 109, 116, 213, 196)
-plt.imshow(sorted_img);plt.show()
-len(sorted_img[sorted_img != 0])
-can_teleport = len(sorted_img[sorted_img != 0]) > 30
-
-
-# In[11]:
-
-
-
-
-
-# In[10]:
-
-
-print('poe_bot._generateColorfulImage')
-game_img = poe_bot.getImage()
-print('game_img')
-plt.imshow(game_img);plt.show()
-
-
-# In[39]:
-
-
-import pickle
-f = open('./blue_drops.pickle', 'wb')
-pickle.dump(teleport_to_img, f)
-f.close()
-
-
-# In[12]:
-
-
-party_member_to_follow
 
