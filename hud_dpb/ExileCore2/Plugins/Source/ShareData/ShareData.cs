@@ -23,12 +23,17 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
 {
     private static bool ServerIsRunning = false;
     private const int DefaultServerPort = 50000;
+    private static int update_frequency_per_sec = 20;
+    private static List<string> data_cache = new List<string>(["", ""]);
+    private static readonly object dataTempLock = new object();  // Lock object for thread-safety
+
     public override bool Initialise()
     {
         GameController.LeftPanel.WantUse(() => Settings.Enable);
         int ServerPort = GetServerPort();
         Task.Run(() => ServerRestartEvent());
         Task.Run(() => StartHttpServer()); // Start the HTTP server
+        // Task.Run(() => startUpdatingCache()); // cache
         return true;
     }
     private int GetServerPort()
@@ -61,10 +66,57 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
 
         while (true)
         {
+            await Task.Delay(50);
             HttpListenerContext context = await listener.GetContextAsync();
             _ = HandleHttpRequestAsync(context); // Handle each HTTP request asynchronously
         }
     }
+
+    private async Task startUpdatingCache()
+    {
+        await Task.Delay(100);
+        int started_at_ms = Environment.TickCount;
+        while (true)
+        {
+            // Get new data and serialize it
+            string data;
+            try
+            {
+                DebugWindow.LogMsg($"update cache");
+                data = SerializeData(getData("partial"));
+            }
+            catch (Exception ex)
+            {
+                DebugWindow.LogError($"update cache error: {ex}");
+                await Task.Delay(10);
+                continue;
+            }
+
+            // Thread-safe access to data_temp (using lock)
+            lock (dataTempLock)
+            {
+                // Remove the oldest entry if the list has more than a certain number of entries
+                if (data_cache.Count > 10) // Adjust threshold as needed
+                {
+                    data_cache.RemoveAt(0);
+                }
+                data_cache.Add(data);
+            }
+
+            int ended_at_ms = Environment.TickCount;
+            int elapsed_time_ms = ended_at_ms - started_at_ms;
+
+            // Calculate the delay needed to maintain the update frequency
+            int wait_for_ms = (1000 / update_frequency_per_sec) - elapsed_time_ms;
+
+            if (wait_for_ms > 0)
+            {
+                await Task.Delay(wait_for_ms);
+            }
+            started_at_ms = Environment.TickCount;
+        }
+    }
+
     private async Task HandleHttpRequestAsync(HttpListenerContext context)
     {
         try
@@ -93,6 +145,7 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
 
         while (true)
         {
+            await Task.Delay(10);
             var client = await listener.AcceptTcpClientAsync();
             _ = HandleClientAsync(client); // Handle each client asynchronously
         }
@@ -773,47 +826,35 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
         AuctionHouseUi_c auction_house_ui = new AuctionHouseUi_c();
         var auction_house_element = GameController.IngameState.IngameUi.CurrencyExchangePanel;
         auction_house_ui.v = auction_house_element.IsVisible ? 1 : 0;
-
         if (auction_house_element.IsVisible == false){
             return auction_house_ui;
         }
-
-        var auction_house_rect = auction_house_element.GetClientRect();
-        auction_house_ui.sz = new List<int> {
-            (int)auction_house_rect.X, 
-            (int)(auction_house_rect.X + auction_house_rect.Width), 
-            (int)auction_house_rect.Y, 
-            (int)(auction_house_rect.Y + auction_house_rect.Height), 
-        };
-
+        auction_house_ui.sz = getListOfIntFromElRect(auction_house_element);
+        auction_house_ui.i_w_b_sz = getListOfIntFromElRect(auction_house_element.GetChildAtIndex(7));
+        auction_house_ui.i_w_f_sz = getListOfIntFromElRect(auction_house_element.GetChildAtIndex(5));
+        auction_house_ui.i_h_b_sz = getListOfIntFromElRect(auction_house_element.GetChildAtIndex(10));
+        auction_house_ui.i_h_f_sz = getListOfIntFromElRect(auction_house_element.GetChildAtIndex(8));
+        auction_house_ui.place_order_b_sz = getListOfIntFromElRect(auction_house_element.GetChildAtIndex(15));
 
         auction_house_ui.g = GameController.IngameState.IngameUi.InventoryPanel.GetChildFromIndices([3,3,1]).Text;
-
-        if (auction_house_element.OfferedItemType != null){
-            auction_house_ui.o_i_t = auction_house_element.OfferedItemType.BaseName;
+        auction_house_ui.dc = auction_house_element.GetChildAtIndex(14).TextNoTags;
+        var offered_item_element = auction_house_element.GetChildFromIndices([10,0]);
+        if (offered_item_element != null){
+            auction_house_ui.o_i_t = offered_item_element.Text;
         }
-        if (auction_house_element.WantedItemType != null){
-            auction_house_ui.w_i_t = auction_house_element.WantedItemType.BaseName;
+        var wanted_item_element = auction_house_element.GetChildFromIndices([7,0]);
+        if (wanted_item_element != null){
+            auction_house_ui.w_i_t = wanted_item_element.Text;
         }
-
-        if (auction_house_element.OfferedItemType != null && auction_house_element.WantedItemType != null){
-            auction_house_ui.mt_get = auction_house_element.MarketRateGet;
-            auction_house_ui.mt_give = auction_house_element.MarketRateGive;
-            auction_house_ui.o_i_s = new List<AuctionHouseUiStock_c>();
-            foreach (var item in auction_house_element.OfferedItemStock){
-                AuctionHouseUiStock_c stock = new AuctionHouseUiStock_c();
-                stock.get = item.Get;
-                stock.give = item.Give;
-                stock.listed_count = item.ListedCount;
-                auction_house_ui.o_i_s.Add(stock);
-            }
-            auction_house_ui.w_i_s = new List<AuctionHouseUiStock_c>();
-            foreach (var item in auction_house_element.WantedItemStock){
-                AuctionHouseUiStock_c stock = new AuctionHouseUiStock_c();
-                stock.get = item.Get;
-                stock.give = item.Give;
-                stock.listed_count = item.ListedCount;
-                auction_house_ui.w_i_s.Add(stock);
+        if (offered_item_element != null && wanted_item_element != null){
+            var market_ratio_element = auction_house_element.GetChildAtIndex(13);
+            if (market_ratio_element != null){
+                auction_house_ui.market_ratios_texts = new List<string>();
+                var ratios = market_ratio_element.Tooltip.Children.Skip(2).ToArray();
+                foreach (var ratio in ratios)
+                {
+                    auction_house_ui.market_ratios_texts.Add(ratio.TextNoTags);
+                }
             }
         }
         // currency picker
@@ -845,12 +886,13 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
                         var picker_element = new AuctionHouseUiCurrencyPickerElements_c();
                         picker_element.sz = getListOfIntFromElRect(subcategory_item);
                         picker_element.t = subcategory_item.Children[0].Text;
+                        var item_count = subcategory_item.GetChildFromIndices([1,0]).Text;
+                        picker_element.c = item_count == null ? "0" : item_count;
                         auction_house_ui.c_p.p_e.Add(picker_element);
                     }
                 }              
             }
         }
-
         // current orders
         return auction_house_ui;
     }
@@ -1838,13 +1880,10 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
     public GetDataObject getData(string type){
         GetDataObject response = new GetDataObject();
         DebugWindow.LogMsg("call getData");
-        
-
         bool detailed = false;
         if (type == "full"){
             detailed = true;
         }
-
         try{
             // game state
             response.g_s = 0; 
@@ -1905,15 +1944,11 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
         } catch (Exception e) {
             DebugWindow.LogError($"ShareData cannot build player data -> {e}");
         }
-
         if (detailed == true) {
             response.terrain_string = generateMinimap().ToString();
             response.c_t = GameController.Game.InputType.GetHashCode();
         }
-
-
         DebugWindow.LogMsg("return getData");
-        
         return response;
 
     }
@@ -1929,6 +1964,24 @@ public class ShareData : BaseSettingsPlugin<ShareDataSettings>
             {
                 case "/getData":
                     string requestType = ExtractQueryParameter(query, "type", "partial");
+
+                    // if (requestType == "full"){
+                    //     return SerializeData(getData(requestType));
+                    // } else {
+                    //     // Thread-safe access to the last item in the list
+                    //     string data;
+                    //     lock (dataTempLock)
+                    //     {
+                    //         data = data_cache[data_cache.Count - 1];
+                    //         // if (data_cache.Count > 0)
+                    //         // {
+                    //         // }
+                    //     }
+                    //     return data;
+
+                    // }
+
+
                     return SerializeData(getData(requestType));
 
                 case "/getLocationOnScreen":

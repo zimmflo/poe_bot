@@ -121,12 +121,6 @@ public class AuctionHouseUiOrder_c{
     public int is_canceled { get; set; } // text
 }
 
-public class AuctionHouseUiStock_c{
-    public int get { get; set; } // text
-    public int give { get; set; } // text
-    public int listed_count { get; set; } // text
-}
-
 public class AuctionHouseUiCurrencyPickerCategory_c{
     public string t; // text
     public List<int> sz { get; set; } // label screen zone x1 x2 y1 y2
@@ -136,6 +130,7 @@ public class AuctionHouseUiCurrencyPickerCategory_c{
 public class AuctionHouseUiCurrencyPickerElements_c{
     public string t; // text
     public List<int> sz { get; set; } // label screen zone x1 x2 y1 y2
+    public string c; // count
     
 }
 
@@ -148,14 +143,18 @@ public class AuctionHouseUiCurrencyPicker_c{
 
 public class AuctionHouseUi_c{
     public int v; // visible
-    public List<int> sz { get; set; } // label screen zone x1 x2 y1 y2
+    public List<int> sz { get; set; } // element screen zone x1 x2 y1 y2
+    public List<int> i_w_b_sz { get; set; } // i want button screen zone x1 x2 y1 y2
+    public List<int> i_h_b_sz { get; set; } // i have button screen zone x1 x2 y1 y2
     public string g; // current gold
     public string o_i_t; // offered item type
     public string w_i_t; // wanted item type
-    public int mt_get; // market rate get
-    public int mt_give; // market rate give
-    public List<AuctionHouseUiStock_c> o_i_s{ get; set; } // offered item stock
-    public List<AuctionHouseUiStock_c> w_i_s{ get; set; } // wanted item stock
+    public string dc; // deal cost
+    public List<int> place_order_b_sz { get; set; } // place order button screen zone x1 x2 y1 y2
+    public List<int> i_w_f_sz { get; set; } // i want field screen zone x1 x2 y1 y2
+    public List<int> i_h_f_sz { get; set; } // i have field screen zone x1 x2 y1 y2
+
+    public List<string> market_ratios_texts;
     public AuctionHouseUiCurrencyPicker_c c_p{ get; set; } // currency picker
     public List<AuctionHouseUiOrder_c> c_o{ get; set; } // current orders
 }
