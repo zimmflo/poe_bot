@@ -16,6 +16,7 @@ class Backend:
         self.port = port
         self.host = poe_bot.remote_ip
         self.debug = poe_bot.debug
+        # self.debug = True
         self.sock = None
         self.lock = threading.Lock()  # For thread-safe operations
 
@@ -120,6 +121,9 @@ class Backend:
 
     def getMapInfo(self):
         return self._endpoint_request('getMapInfo')
+
+    def getAuctionHouseUi(self):
+        return self._endpoint_request('getAuctionHouseUi')
 
     def getWholeData(self):
         return self._endpoint_request('getData', {'type': 'full'})
