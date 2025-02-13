@@ -58,7 +58,7 @@ class PoeBot:
     "character is dead",
     "logged in, success",
   ] 
-  def __init__(self, unique_id, remote_ip, max_actions_per_second = random.randint(8,10), debug = False, password = None, group_id = 'solo', coordinator_ip = "127.0.0.1") -> None:
+  def __init__(self, unique_id, remote_ip, max_actions_per_second = 10, debug = False, password = None, group_id = 'solo', coordinator_ip = "127.0.0.1") -> None:
     self.league = current_league
     self.unique_id = unique_id
     self.group_id = group_id
@@ -105,6 +105,10 @@ class PoeBot:
     unique_id:str = None
     remote_ip:str = None
     return unique_id, remote_ip
+  def update(self):
+    pass
+  def updateTerrain(self):
+    pass
   def customExceptionHandler(self, exc_type, exc_value, exc_traceback):
     if issubclass(exc_type, KeyboardInterrupt):
         sys.__excepthook__(exc_type, exc_value, exc_traceback)

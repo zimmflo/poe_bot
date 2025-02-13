@@ -24,7 +24,6 @@ import numpy as np
 
 # readability
 from .utils import getInventoryItemCoordinates, getFourPoints
-from .constants import IGNOREKEYWORDSTOSEARCH, KEYWORDSTOSEARCH, shitty_uniques_metadatas
 
 class HelperFunctions:
   def __init__(self, poe_bot: PoeBot) -> None:
