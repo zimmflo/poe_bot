@@ -1,3 +1,4 @@
+import json
 import os
 import socket
 import time
@@ -6,34 +7,7 @@ import uuid
 import win32clipboard
 from utils import Controller
 
-import json
-import subprocess
-
-import win32gui
-
 controller = Controller()
-
-
-def getWindowLoc(window_name: str):
-  try:
-    hwnd = win32gui.FindWindow(None, window_name)
-    rect = win32gui.GetWindowRect(hwnd)
-    return rect
-  except:
-    return None
-
-
-def processExists(process_name):
-  call = "TASKLIST", "/FI", "imagename eq %s" % process_name
-  # use buildin check_output right away
-  output = subprocess.check_output(call).decode()
-  # check in last line for process name
-  last_line = output.strip().split("\r\n")[-1]
-  # because Fail message could be translated
-  return last_line.lower().startswith(process_name.lower())
-
-
-
 
 
 def getParam(action_msg: str, param: str):
