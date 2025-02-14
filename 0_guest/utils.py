@@ -658,13 +658,3 @@ def _to_windows_coordinates(x=0, y=0):
   windows_y = (y * 65535) // display_height
 
   return windows_x, windows_y
-
-
-if __name__ == "__main__":
-  for i in range(10):
-    print(time.time())
-    grabScreen()
-    print(time.time())
-  # controller = Controller()
-  # controller.mouse.setCursorPos(1,1)
-  # controller.mouse.click(-1,-1)
