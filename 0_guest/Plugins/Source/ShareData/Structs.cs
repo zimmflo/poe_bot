@@ -1,20 +1,4 @@
 ﻿using System.Collections.Generic;
-public struct ShareDataEntity
-{
-    public string bounds_center_pos;
-    public string grid_pos;
-    public string pos;
-    public string distance_to_player;
-    public string on_screen_position;
-    public string additional_info;
-}
-
-public struct ShareDataContent
-{
-    public Dictionary<string, ShareDataEntity> items_on_ground_label;
-    public ShareDataEntity player_data;
-    public string mouse_position;
-}
 
 public class Posx1x2y1y2
 {
@@ -23,79 +7,42 @@ public class Posx1x2y1y2
     public int y1 { get; set; }
     public int y2 { get; set; }
 }
-
-public class KirakMissionUI_c{
-    public int v; // visible
-    public List<int> sz { get; set; } // label screen zone x1 x2 y1 y2
-    public List<int> kmv { get; set; } // kirak maps variety[ white yellow red ]
-    public List<InventoryObjectCustom_c> items { get; set; } // 
-}
 public class PurchaseWindowHideout_c{
-    public int v; // visible
-    public List<int> sz { get; set; } // label screen zone x1 x2 y1 y2
+    public int is_visible; // visible
+    public List<int> screen_zone { get; set; } // label screen zone x1 x2 y1 y2
     public List<InventoryObjectCustom_c> items { get; set; } // 
 }
 public class WorldMapUI_c{
-    public int v; // visible
-    public List<int> sz { get; set; } // label screen zone x1 x2 y1 y2
-}
-public class BanditDialogueUi_c{
-    public int v; // visible
-    public List<int> sz { get; set; } // label screen zone x1 x2 y1 y2
-    public List<int> k_sz { get; set; } // kill screen zone x1 x2 y1 y2
-    public List<int> h_sz { get; set; } // help screen zone x1 x2 y1 y2
-}
-public class NecropolisPopupUI_c{
-    public int v; // visible
-    public List<int> eb_sz { get; set; } // enter button screen zone x1 x2 y1 y2
-    // public List<int> k_sz { get; set; } // kill screen zone x1 x2 y1 y2
-    // public List<int> h_sz { get; set; } // help screen zone x1 x2 y1 y2
-}
-public class IncursionUiRoom_c{
-    public string n; // name
-    public int cte; // connected to entrance
-    public List<int> sz { get; set; } // screen zone x1 x2 y1 y2
-
+    public int is_visible; // visible
+    public List<int> screen_zone { get; set; } // label screen zone x1 x2 y1 y2
 }
 public class NpcDialogueUiChoice_c{
-    public string t; // text
-    public List<int> sz { get; set; } // screen zone x1 x2 y1 y2
+    public string text; // text
+    public List<int> screen_zone { get; set; } // screen zone x1 x2 y1 y2
 }
 public class NpcDialogueUi_c{
-    public int v; // visible
-    public List<NpcDialogueUiChoice_c> ch { get; set; } // choices, possible buttons we can click, [name, screen_zone]
-    public List<InventoryObjectCustom_c> rw { get; set; } // rewards choices
-    public string nn; // npc_name
-    public string t; // text
-    public List<int> sz { get; set; } // screen zone x1 x2 y1 y2
-
-
+    public int is_visible; // visible
+    public List<NpcDialogueUiChoice_c> choices { get; set; } // choices, possible buttons we can click, [name, screen_zone]
+    public List<InventoryObjectCustom_c> reward_choices { get; set; } // rewards choices
+    public string npc_name; // npc_name
+    public string text; // text
+    public List<int> screen_zone { get; set; } // screen zone x1 x2 y1 y2
 }
 public class NpcRewardUi_c{
-    public int v; // visible
-    public List<int> sz { get; set; } // screen zone x1 x2 y1 y2
+    public int visible; // visible
+    public List<int> screen_zone { get; set; } // screen zone x1 x2 y1 y2
     public List<InventoryObjectCustom_c> choices { get; set; } // rewards choices
 
 }
-public class IncursionUi_c{
-    public int v; // visible
-    public int eib_v; // enter incursion button visible
-    public int tib_v; // take incursion button visible
-    public string irt; // incursions remaining text
-    public string crn; // current room name
-    public List<int> eib_sz { get; set; } // enter incursion button screen zone x1 x2 y1 y2
-    public List<string> crc { get; set; } // current room connections raw texts
-    public List<string> cruur { get; set; } // current room updates raw texts
-    public List<IncursionUiRoom_c> r { get; set; } // rooms
-}
+
 public class UltimatumNextWaveUi{
-    public int v; // visible
-    public int a_b_v; // accept_button is visible
-    public List<int> sz { get; set; } // label screen zone x1 x2 y1 y2
-    public List<int> ch_sz { get; set; } // choices label screen zone x1 x2 y1 y2
-    public string r; // round
-    public List<string> ch { get; set; } // choices
-    public string chosen; // if choice is made
+    public int is_visible; // visible
+    public int accept_button_is_visible; // accept_button is visible
+    public List<int> screen_zone { get; set; } // label screen zone x1 x2 y1 y2
+    public List<int> choices_label_screen_zone { get; set; } // choices label screen zone x1 x2 y1 y2
+    public string round; // round
+    public List<string> choices { get; set; } // choices
+    public string is_trial_chosen; // if choice is made
 
 }
 public class PartyMember_c{
@@ -103,7 +50,7 @@ public class PartyMember_c{
     public bool is_leader; // visible
     public string area_raw_name { get; set; } // text
     public bool same_location; // visible
-    public List<int> sz { get; set; } // label screen zone x1 x2 y1 y2
+    public List<int> screen_zone { get; set; } // label screen zone x1 x2 y1 y2
 
 }
 public class PartyInfo_c{
@@ -122,186 +69,177 @@ public class AuctionHouseUiOrder_c{
 }
 
 public class AuctionHouseUiCurrencyPickerCategory_c{
-    public string t; // text
-    public List<int> sz { get; set; } // label screen zone x1 x2 y1 y2
+    public string text; // text
+    public List<int> screen_zone { get; set; } // label screen zone x1 x2 y1 y2
     
 }
 
 public class AuctionHouseUiCurrencyPickerElements_c{
-    public string t; // text
-    public List<int> sz { get; set; } // label screen zone x1 x2 y1 y2
-    public string c; // count
+    public string text; // text
+    public List<int> screen_zone { get; set; } // label screen zone x1 x2 y1 y2
+    public string count; // count
     
 }
 
 public class AuctionHouseUiCurrencyPicker_c{
-    public int v; // visible
-    public List<int> sz { get; set; } // label screen zone x1 x2 y1 y2
-    public List<AuctionHouseUiCurrencyPickerCategory_c> c { get; set; } // categories
-    public List<AuctionHouseUiCurrencyPickerElements_c> p_e { get; set; } // presented elements
+    public int is_visible; // visible
+    public List<int> screen_zone { get; set; } // label screen zone x1 x2 y1 y2
+    public List<AuctionHouseUiCurrencyPickerCategory_c> categories { get; set; } // categories
+    public List<AuctionHouseUiCurrencyPickerElements_c> presented_elements { get; set; } // presented elements
 }
 
 public class AuctionHouseUi_c{
-    public int v; // visible
-    public List<int> sz { get; set; } // element screen zone x1 x2 y1 y2
-    public List<int> i_w_b_sz { get; set; } // i want button screen zone x1 x2 y1 y2
-    public List<int> i_h_b_sz { get; set; } // i have button screen zone x1 x2 y1 y2
-    public string g; // current gold
-    public string o_i_t; // offered item type
-    public string w_i_t; // wanted item type
-    public string dc; // deal cost
-    public List<int> place_order_b_sz { get; set; } // place order button screen zone x1 x2 y1 y2
-    public List<int> i_w_f_sz { get; set; } // i want field screen zone x1 x2 y1 y2
-    public List<int> i_h_f_sz { get; set; } // i have field screen zone x1 x2 y1 y2
-
+    public int is_visible; // visible
+    public List<int> screen_zone { get; set; } // element screen zone x1 x2 y1 y2
+    public List<int> i_want_button_screen_zone { get; set; } // i want button screen zone x1 x2 y1 y2
+    public List<int> i_have_button_screen_zone { get; set; } // i have button screen zone x1 x2 y1 y2
+    public string gold_in_inventory; // current gold
+    public string i_have_item_name; // offered item type
+    public string i_want_item_name; // wanted item type
+    public string deal_cost_gold; // deal cost
+    public List<int> place_order_button_screen_zone { get; set; } // place order button screen zone x1 x2 y1 y2
+    public List<int> i_want_field_screen_zone { get; set; } // i want field screen zone x1 x2 y1 y2
+    public List<int> i_have_field_screen_zone { get; set; } // i have field screen zone x1 x2 y1 y2
     public List<string> market_ratios_texts;
-    public AuctionHouseUiCurrencyPicker_c c_p{ get; set; } // currency picker
-    public List<AuctionHouseUiOrder_c> c_o{ get; set; } // current orders
+    public AuctionHouseUiCurrencyPicker_c currency_picker{ get; set; } // currency picker
+    public List<AuctionHouseUiOrder_c> current_orders{ get; set; } // current orders
 }
-
 
 public class BlueLine_c{
-    public string t { get; set; } // text
-    public List<int> sz { get; set; } // label screen zone x1 x2 y1 y2
-    public int v; // visible
+    public string text { get; set; } // text
+    public List<int> screen_zone { get; set; } // label screen zone x1 x2 y1 y2
+    public int is_visible; // visible
 }
 public class MapUi_c{
-    public int v; // visible
-    public List<BlueLine_c> elements { get; set; } 
+    public int is_visible; // visible
+    public List<BlueLine_c> text_elements { get; set; } 
 }
 public class ResurrectUi_c{
-    public int v; // visible
-    public List<int> sz { get; set; } // label screen zone x1 x2 y1 y2
+    public int is_visible; // visible
+    public List<int> screen_zone { get; set; } // label screen zone x1 x2 y1 y2
 }
 
 public class AnointUi_c{
-    public int v; // visible
-    public List<int> sz { get; set; } // label screen zone x1 x2 y1 y2
-    public List<InventoryObjectCustom_c> o { get; set; } // oils
-    public List<InventoryObjectCustom_c> pi { get; set; } // placed items
-    public List<int> a_b_sz { get; set; } // anoint button zone x1 x2 y1 y2
-    public List<string> t { get; set; } // texts
+    public int is_visible; // visible
+    public List<int> screen_zone { get; set; } // label screen zone x1 x2 y1 y2
+    public List<InventoryObjectCustom_c> oils { get; set; } // oils
+    public List<InventoryObjectCustom_c> placed_items { get; set; } // placed items
+    public List<int> annoint_button_screen_zone { get; set; } // anoint button zone x1 x2 y1 y2
+    public List<string> texts { get; set; } // texts
 
 }
 
 public class RitualUi_c{
-    public int rt_b_v { get; set; } // ritual button is_visible
-    public List<int> rt_b_sz { get; set; } // ritual button screen zone
-    public string t { get; set; } // tribute
-    public string p { get; set; } // progress
-    public int v { get; set; } // is_visible
-    public List<int> sz { get; set; } // label screen zone x1 x2 y1 y2
-    public string r_b { get; set; } // reroll button tooltip raw
-    public List<int> r_b_sz { get; set; } // reroll button screen zone
-    public string d_b { get; set; } // defer button text raw
-    public List<int> d_b_sz { get; set; } // defer button screen zone
-    public List<InventoryObjectCustom_c> i { get; set; } // items
+    public int ritual_button_is_visible { get; set; } // ritual button is_visible
+    public List<int> ritual_button_screen_zone { get; set; } // ritual button screen zone
+    public string tribute { get; set; } // tribute
+    public string progress { get; set; } // progress
+    public int purchase_menu_is_visible { get; set; } // is_visible
+    public List<int> purchase_menu_screen_zone { get; set; } // label screen zone x1 x2 y1 y2
+    public string reroll_button_tooltip_text { get; set; } // reroll button tooltip raw
+    public List<int> reroll_button_screen_zone { get; set; } // reroll button screen zone
+    public string defer_button_text_raw { get; set; } // defer button text raw
+    public List<int> defer_button_screen_zone { get; set; } // defer button screen zone
+    public List<InventoryObjectCustom_c> items { get; set; } // items
     
 
 }
 
 public class AllUi_c{
-    public KirakMissionUI_c km;
-    public PurchaseWindowHideout_c pwh;
-    public WorldMapUI_c wm;
-    public BanditDialogueUi_c bd;
-    public NecropolisPopupUI_c np;
-    public NpcDialogueUi_c nd;
-    public NpcRewardUi_c nr;
-    public IncursionUi_c iu;
-    public UltimatumNextWaveUi unw;
-    public ResurrectUi_c ru;
-    public GetOpenedStashInfoObject inv; // inventory
-    public GetOpenedStashInfoObject sta; // stash
-    public InventoryObjectCustom_c hii; // hovered item info
+    // public PurchaseWindowHideout_c pwh;
+    // public WorldMapUI_c wm;
+    // public NpcDialogueUi_c nd;
+    // public NpcRewardUi_c nr;
+    // public ResurrectUi_c ru;
+    // public GetOpenedStashInfoObject inv; // inventory
+    // public GetOpenedStashInfoObject sta; // stash
+    // public InventoryObjectCustom_c hii; // hovered item info
 }
 public class VisibleLabel
 {
-    public string p { get; set; } // path
+    public string path { get; set; } // path
     public int id { get; set; } // id it belongs to
-    public List<int> sz { get; set; } // label screen zone x1 x2 y1 y2
-    public List<List<int>> sz_a { get; set; } // array of screen zones label screen zone x1 x2 y1 y2
-    public string i_m { get; set; } // item_metadata
+    public List<int> screen_zone { get; set; } // label screen zone x1 x2 y1 y2
+    public List<List<int>> screen_zones { get; set; } // array of screen zones label screen zone x1 x2 y1 y2
+    public string item_metadata { get; set; } // item_metadata
     public List<string> texts { get; set; } // list of texts for this label
-    public int v { get; set; } // is visible
+    public int is_visible { get; set; } // is visible
     public Posx1x2y1y2 p_o_s { get; set; } // pos_on_screen
 }
 public class SkillsOnBar_c
 {
-    public List<int> c_b_u { get; set; } // can_be_used 0 - false 1 - true
-    public List<int> cs { get; set; } // casts per 100 seconds
-    public List<int> tu { get; set; } // total uses
+    public List<int> can_be_used { get; set; } // can_be_used 0 - false 1 - true
+    public List<int> casts_per_100_seconds { get; set; } // casts per 100 seconds
+    public List<int> total_uses { get; set; } // total uses
     // below if "full"
-    public List<string> i_n { get; set; } // internal_name
-    public List<List<Dictionary<string, int>>> d { get; set; } // descriptions
+    public List<string> internal_name { get; set; } // internal_name
+    public List<List<Dictionary<string, int>>> descriptions { get; set; } // descriptions
 }
 public class FlasksOnBar
 {
-    public List<string> n { get; set; } // flask_base_names
-    public List<int> cu { get; set; } // can_use_flask
-    public List<int> i { get; set; } // index
+    public List<string> flask_base_names { get; set; } // flask_base_names
+    public List<int> can_use_flask { get; set; } // can_use_flask
+    public List<int> flask_indexes { get; set; } // index
 }
 public class PlayerInfo_c
 {
-    public List<int> gp { get; set; } // player pos grid position x ,y 
-    public List<int> l { get; set; } // life component, [health max,current,reserved, es max,current, reserved, mana max, current, reserved]
-    public List<string> b { get; set; } // buffs
-    public List<string> db { get; set; } // debuffs
-    public int im { get; set; } // ismoving
-    public int lv { get; set; } // lvl
+    public List<int> grid_position { get; set; } // player pos grid position x ,y 
+    public List<int> life_component { get; set; } // life component, [health max,current,reserved, es max,current, reserved, mana max, current, reserved]
+    public List<string> buffs { get; set; } // buffs
+    public List<string> debuffs { get; set; } // debuffs
+    public int is_moving { get; set; } // ismoving
+    public int lvl { get; set; } // lvl
 }
 public class MinimapIcon_c
 {
-    public int i { get; set; } // id
-    public string p { get; set; } // path
-    public string n { get; set; } // path
-    public int v { get; set; } // is_hide
-    public int h { get; set; } // is_visible
-    
+    public int id { get; set; } // id
+    public string path { get; set; } // path
+    public string name { get; set; } // name
+    public int is_visible { get; set; } // is_hide
+    public int is_hidden { get; set; } // is_visible
 }
 
 
 public class Entity_c{
-    public List<int> ls { get; set; } // location on screen x,y
-    public string p { get; set; } // path
-    public string r { get; set; } // rarirty
-    public int i { get; set; } // id
-    public int o { get; set; } // is opened
-    public int h { get; set; } // is hostile
-    public int ia { get; set; } // is_attackable
-    public int t { get; set; } // is targetable
-    public int it { get; set; } // is_targeted
-    public int em { get; set; } // essenced_mob
-    public int b { get; set; } // BoundsCenterPos
-    public List<int> gp { get; set; } // grid position x, y
-    public List<int> wp { get; set; } // world position position x, y, z
-    public List<int> l { get; set; } // life component, [health max,current,reserved, es max,current, reserved, mana max, current, reserved]
-    public string rn { get; set; } // render name
-    public string et { get; set; } // entity_type
+    public List<int> location_on_screen { get; set; } // location on screen x,y
+    public string path { get; set; } // path
+    public string rarity { get; set; } // rarirty
+    public int id { get; set; } // id
+    public int is_opened { get; set; } // is opened
+    public int is_hostile { get; set; } // is hostile
+    public int is_attackable { get; set; } // is_attackable
+    public int is_targetable { get; set; } // is targetable
+    public int is_targeted { get; set; } // is_targeted
+    public int essenced_mob { get; set; } // essenced_mob
+    public int bound_center_pos { get; set; } // BoundsCenterPos
+    public List<int> grid_position { get; set; } // grid position x, y
+    public List<int> world_position { get; set; } // world position position x, y, z
+    public List<int> life_component { get; set; } // life component, [health max,current,reserved, es max,current, reserved, mana max, current, reserved]
+    public string render_name { get; set; } // render name
+    public string entity_type { get; set; } // entity_type
 
 }
 public class VisibleLabelEntity_c{
-    public List<int> ls { get; set; } // location on screen x,y
-    public string p { get; set; } // path
-    public int i { get; set; } // id
-    public int t { get; set; } // is targetable
-    public int b { get; set; } // BoundsCenterPos
-    public List<int> gp { get; set; } // grid position x, y
-    public List<int> wp { get; set; } // world position position x, y, z
-    public string rn { get; set; } // render name
-    public string et { get; set; } // entity_type
+    public List<int> location_on_screen { get; set; } // location on screen x,y
+    public string path { get; set; } // path
+    public int id { get; set; } // id
+    public int is_targetable { get; set; } // is targetable
+    public int bound_center_pos { get; set; } // BoundsCenterPos
+    public List<int> grid_position { get; set; } // grid position x, y
+    public List<int> world_position { get; set; } // world position position x, y, z
+    public string render_name { get; set; } // render name
+    public string entity_type { get; set; } // entity_type
 }
 public class ItemOnGroundLabel_c
 {
     public int id; // id
-    public List<int> gp { get; set; } // grid position x ,y 
-    public List<int> sz { get; set; } // label screen zone x1 x2 y1 y2
-    public string a; // animated property metadata // itemonground -> components worlditem -> itementity -> components renderitem -> resourcepath
-    public List<string> l; // links ['rb', 'gb']
-    public string r; // rarity
-    public int t { get; set; } // is targetable
-    public int it { get; set; } // is_targeted
-    public string dn { get; set; } // displayed name
+    public List<int> greed_position { get; set; } // grid position x ,y 
+    public List<int> screen_zone { get; set; } // label screen zone x1 x2 y1 y2
+    public string animated_property_metadata; // animated property metadata // itemonground -> components worlditem -> itementity -> components renderitem -> resourcepath
+    public string rarity; // rarity
+    public int is_targetable { get; set; } // is targetable
+    public int is_targeted { get; set; } // is_targeted
+    public string displayed_name { get; set; } // displayed name
 }
 public class QuestState_c{
     public string id; // id
@@ -309,24 +247,24 @@ public class QuestState_c{
 }
 public class GetDataObject
 {
-    public int br { get; set; } // broken response
-    public int g_s; // game state 0 - broken, 1 - main menu, 10 - select char, 20 - in game
-    public List<int> w { get; set; } // window borders x1 x2 y1 y2
-    public List<int> mcp { get; set; } // mouse cursor pos [x,y]
+    public int broken_response { get; set; } // broken response
+    public int game_state; // game state 0 - broken, 1 - main menu, 10 - select char, 20 - in game
+    public List<int> window_borders { get; set; } // window borders x1 x2 y1 y2
+    public List<int> mouse_cursor_pos { get; set; } // mouse cursor pos [x,y]
     public string terrain_string;
-    public uint ah; // area hash
+    public uint area_hash; // area hash
     public List<Entity_c> awake_entities { get; set; }
-    public List<VisibleLabelEntity_c> vl { get; set; } // visible labels
-    public List<ItemOnGroundLabel_c> i { get; set; } // item_labels
-    public PlayerInfo_c pi { get; set; } // player pos grid position x ,y
-    public bool ipv { get; set; } // Invites panel visible
+    public List<VisibleLabelEntity_c> visible_labels { get; set; } // visible labels
+    public List<ItemOnGroundLabel_c> item_labels { get; set; } // item_labels
+    public PlayerInfo_c player_info { get; set; } // player pos grid position x ,y
+    public bool invites_panel_visible { get; set; } // Invites panel visible
     public bool IsLoading { get; set; }
     public bool IsLoading_b { get; set; }
     public string area_raw_name { get; set; }
-    public FlasksOnBar f { get; set; }  // flasks
-    public SkillsOnBar_c s { get; set; }  // skills
-    public List<int> mgp { get; set; } // mouse grid position ingamestate.data.serverdata mouse world pos
-    public int c_t; // controller type
+    public FlasksOnBar flasks { get; set; }  // flasks
+    public SkillsOnBar_c skills { get; set; }  // skills
+    public List<int> mouse_grid_position { get; set; } // mouse grid position ingamestate.data.serverdata mouse world pos
+    public int controller_type; // controller type
 }
 public class InventoryObjectCustom_c
 {
@@ -334,40 +272,23 @@ public class InventoryObjectCustom_c
     public string a { get; set; } // render_item_component.ResourcePath
     public string unique_name { get; set; }
     public string rarity { get; set; }
-    public string Class { get; set; }
-    public string ItemType { get; set; }
-    public int m_t { get; set; } // map_tier
-    public int c { get; set; } // corrupted
-    public int i { get; set; } // identified
+    public int map_tier { get; set; } // map_tier
+    public int is_corrupted { get; set; } // corrupted
+    public int is_identified { get; set; } // identified
     public string RenderArt { get; set; }
     public int items_in_stack { get; set; }
     public List<string> item_mods { get; set; }
-    public List<string> imr { get; set; } // item mods raw
+    public List<string> item_mods_raw { get; set; } // item mods raw
     public List<string> l; // links ['rb', 'gb']
-    public List<int> g { get; set; } // grid pos x1x2y1y2
-    public List<int> s { get; set; } // screenpos x1x2y1y2
-    public int ti { get; set; } // tab_index
-    public List<string> tt; // tooltip_texts
-    public GridPosition_generated LocationTopLeft { get; set; }
-    public GridPosition_generated LocationBottomRight { get; set; }
+    public List<int> grid_position { get; set; } // grid pos x1x2y1y2
+    public List<int> screen_zone { get; set; } // screenpos x1x2y1y2
+    public List<string> tooltip_texts; // tooltip_texts
     public GridPosition_generated TopLeft { get; set; }
     public GridPosition_generated BottomRight { get; set; }
 }
-public class GetInventoryInfoObject
-{
-    public string status { get; set; }
-    public bool IsOpened { get; set; }
-    public List<InventoryObjectCustom_c> items { get; set; }
-}
-public class MapDeviceCraftMod
-{
-    public Posx1x2y1y2 pos { get; set; }
-    public string text { get; set; }
-}
-
 public class WorldMapEndGameMapObj
 {
-    public List<int> sz { get; set; } // label screen zone x1 x2 y1 y2
+    public List<int> screen_zone { get; set; } // label screen zone x1 x2 y1 y2
     public int id { get; set; }
     public string name { get; set; }
     public string name_raw { get; set; }
@@ -377,38 +298,23 @@ public class WorldMapEndGameMapObj
 
 public class GetMapDeviceInfoObject
 {
-    public bool ap_o { get; set; } // atlas_panel_opened
-    public bool wm_o { get; set; } // world_map_opened
-    public List<WorldMapEndGameMapObj> av_m { get; set; } // avaliable_maps
-    public bool pmw_o { get; set; } // place_map_window_opened
-    public List<int> pmw_sz { get; set; } // place_map_window_screenzone
-    public string pmw_t { get; set; } // place_map_window_ text
-    public List<InventoryObjectCustom_c> pmw_i { get; set; } // place_map_window_items
-    public List<int> pmw_ab_sz { get; set; } // place map window activatte button screenzone
-    public List<int> z_b_sz { get; set; } // ziggurat button screenzone
-    public List<List<int>> rg_sz { get; set; } // realmgate screenzones
-
-
-
-
-
-    // remove
-    public bool IsOpened { get; set; }
-    public int slots_count { get; set; }
-    public List<int> k_m_c { get; set; } // kirak missions count [ white yellow red]
-    public List<string> i_p { get; set; } // invintation_progress [ exarch maven eater]
-    public List<List<int>> mc { get; set; } // missions count [einhar[white yellow red] alva[white yellow red] niko[white yellow red] jun[white yellow red]]
-    public Posx1x2y1y2 c_m_p { get; set; } // map_device_craft_mod window position
-    public List<MapDeviceCraftMod> m_d_c { get; set; } // map_device_craft_mods
-    public Posx1x2y1y2 a_b_p { get; set; } // activate_button_pos
-    public List<InventoryObjectCustom_c> items { get; set; } // items in map device
+    public bool atlas_panel_opened { get; set; } // atlas_panel_opened
+    public bool world_map_opened { get; set; } // world_map_opened
+    public List<WorldMapEndGameMapObj> availiable_maps { get; set; } // avaliable_maps
+    public bool place_map_window_is_opened { get; set; } // place_map_window_opened
+    public List<int> place_map_window_screen_zone { get; set; } // place_map_window_screenzone
+    public string place_map_window_text { get; set; } // place_map_window_ text
+    public List<InventoryObjectCustom_c> placed_items { get; set; } // place_map_window_items
+    public List<int> place_map_window_activate_button_screen_zone { get; set; } // place map window activatte button screenzone
+    public List<int> ziggurat_button_screen_zones { get; set; } // ziggurat button screenzone
+    public List<List<int>> realmgate_screenzones { get; set; } // realmgate screenzones
 }
 public class GetOpenedStashInfoObject
 {
     public string status { get; set; } // to remove
-    public bool IsOpened { get; set; }
-    public List<int> ls { get; set; } // stash display position location on screen x,y
-    public List<List<int>> s_b_p_ls { get; set; } // [ [x1,x2,y1,y2] ] for each stash tab button unsorted, [-1] is the "+"
+    public bool is_opened { get; set; }
+    public List<int> location_on_screen { get; set; } // stash display position location on screen x,y
+    public List<List<int>> tab_buttons_screen_zones { get; set; } // [ [x1,x2,y1,y2] ] for each stash tab button unsorted, [-1] is the "+"
     public string stash_tab_type { get; set; }
     public int total_stash_tab_count { get; set; }
     public int tab_index { get; set; }
@@ -419,30 +325,12 @@ public class GridPosition_generated
     public int X { get; set; }
     public int Y { get; set; }
 }
-public class Health_generated{
-    public int Total { get; set; }
-    public int Current { get; set; }
-}
-public class Mana_generated
-{
-    public int Total { get; set; }
-    public int Current { get; set; }
-}
-public class Life_generated
-{
-    public Health_generated Health { get; set; }
-    public Mana_generated Mana { get; set; }
-}
 public class LocationOnScreen_generated
 {
     public int X { get; set; }
     public int Y { get; set; }
 }
-public class PlayerPos_generated
-{
-    public int X { get; set; }
-    public int Y { get; set; }
-}
+
 public class GemToLevelInfo
 {
     public LocationOnScreen_generated center_location { get; set; }
