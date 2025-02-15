@@ -3,8 +3,9 @@ import socket
 import sys
 
 HOSTNAME = "WIN-POE1"
-HOST = socket.gethostbyname(HOSTNAME)  # or ip
-PORT = 50006
+HOST = "127.0.0.1"
+#socket.gethostbyname(HOSTNAME)
+PORT = 55006
 
 
 def read_response(sock):

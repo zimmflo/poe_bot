@@ -1,0 +1,336 @@
+syntax = "proto3";
+
+package ShareData.Protobuf;
+
+message Posx1x2y1y2 {
+    int32 x1 = 1;
+    int32 x2 = 2;
+    int32 y1 = 3;
+    int32 y2 = 4;
+}
+
+message PurchaseWindowHideout_c {
+    int32 is_visible = 1;
+    repeated int32 screen_zone = 2;
+    repeated InventoryObjectCustom_c items = 3;
+}
+
+message WorldMapUI_c {
+    int32 is_visible = 1;
+    repeated int32 screen_zone = 2;
+}
+
+message NpcDialogueUiChoice_c {
+    string text = 1;
+    repeated int32 screen_zone = 2;
+}
+
+message NpcDialogueUi_c {
+    int32 is_visible = 1;
+    repeated NpcDialogueUiChoice_c choices = 2;
+    repeated InventoryObjectCustom_c reward_choices = 3;
+    string npc_name = 4;
+    string text = 5;
+    repeated int32 screen_zone = 6;
+}
+
+message NpcRewardUi_c {
+    int32 visible = 1;
+    repeated int32 screen_zone = 2;
+    repeated InventoryObjectCustom_c choices = 3;
+}
+
+message UltimatumNextWaveUi {
+    int32 is_visible = 1;
+    int32 accept_button_is_visible = 2;
+    repeated int32 screen_zone = 3;
+    repeated int32 choices_label_screen_zone = 4;
+    string round = 5;
+    repeated string choices = 6;
+    string is_trial_chosen = 7;
+}
+
+message PartyMember_c {
+    string ign = 1;
+    bool is_leader = 2;
+    string area_raw_name = 3;
+    bool same_location = 4;
+    repeated int32 screen_zone = 5;
+}
+
+message PartyInfo_c {
+    repeated PartyMember_c party_members = 1;
+}
+
+message AuctionHouseUiOrder_c {
+    string offered_item = 1;
+    int32 offered_item_size = 2;
+    int32 offered_item_ratio = 3;
+    string wanted_item = 4;
+    int32 wanted_item_size = 5;
+    int32 wanted_item_ratio = 6;
+    int32 is_completed = 7;
+    int32 is_canceled = 8;
+}
+
+message AuctionHouseUiCurrencyPickerCategory_c {
+    string text = 1;
+    repeated int32 screen_zone = 2;
+}
+
+message AuctionHouseUiCurrencyPickerElements_c {
+    string text = 1;
+    repeated int32 screen_zone = 2;
+    string count = 3;
+}
+
+message AuctionHouseUiCurrencyPicker_c {
+    int32 is_visible = 1;
+    repeated int32 screen_zone = 2;
+    repeated AuctionHouseUiCurrencyPickerCategory_c categories = 3;
+    repeated AuctionHouseUiCurrencyPickerElements_c presented_elements = 4;
+}
+
+message AuctionHouseUi_c {
+    int32 is_visible = 1;
+    repeated int32 screen_zone = 2;
+    repeated int32 i_want_button_screen_zone = 3;
+    repeated int32 i_have_button_screen_zone = 4;
+    string gold_in_inventory = 5;
+    string i_have_item_name = 6;
+    string i_want_item_name = 7;
+    string deal_cost_gold = 8;
+    repeated int32 place_order_button_screen_zone = 9;
+    repeated int32 i_want_field_screen_zone = 10;
+    repeated int32 i_have_field_screen_zone = 11;
+    repeated string market_ratios_texts = 12;
+    AuctionHouseUiCurrencyPicker_c currency_picker = 13;
+    repeated AuctionHouseUiOrder_c current_orders = 14;
+}
+
+message BlueLine_c {
+    string text = 1;
+    repeated int32 screen_zone = 2;
+    int32 is_visible = 3;
+}
+
+message MapUi_c {
+    int32 is_visible = 1;
+    repeated BlueLine_c text_elements = 2;
+}
+
+message ResurrectUi_c {
+    int32 is_visible = 1;
+    repeated int32 screen_zone = 2;
+}
+
+message AnointUi_c {
+    int32 is_visible = 1;
+    repeated int32 screen_zone = 2;
+    repeated InventoryObjectCustom_c oils = 3;
+    repeated InventoryObjectCustom_c placed_items = 4;
+    repeated int32 annoint_button_screen_zone = 5;
+    repeated string texts = 6;
+}
+
+message RitualUi_c {
+    int32 ritual_button_is_visible = 1;
+    repeated int32 ritual_button_screen_zone = 2;
+    string tribute = 3;
+    string progress = 4;
+    int32 purchase_menu_is_visible = 5;
+    repeated int32 purchase_menu_screen_zone = 6;
+    string reroll_button_tooltip_text = 7;
+    repeated int32 reroll_button_screen_zone = 8;
+    string defer_button_text_raw = 9;
+    repeated int32 defer_button_screen_zone = 10;
+    repeated InventoryObjectCustom_c items = 11;
+}
+
+message AllUi_c {
+    // PurchaseWindowHideout_c pwh = 1;
+    // WorldMapUI_c wm = 2;
+    // NpcDialogueUi_c nd = 3;
+    // NpcRewardUi_c nr = 4;
+    // ResurrectUi_c ru = 5;
+    // GetOpenedStashInfoObject inv = 6;
+    // GetOpenedStashInfoObject sta = 7;
+    // InventoryObjectCustom_c hii = 8;
+}
+
+message VisibleLabel {
+    string path = 1;
+    int32 id = 2;
+    repeated int32 screen_zone = 3;
+    repeated int32 screen_zones = 4;
+    string item_metadata = 5;
+    repeated string texts = 6;
+    int32 is_visible = 7;
+    Posx1x2y1y2 p_o_s = 8;
+}
+
+message SkillsOnBar_c {
+    repeated int32 can_be_used = 1;
+    repeated int32 casts_per_100_seconds = 2;
+    repeated int32 total_uses = 3;
+    repeated string internal_name = 4;
+    map<string, int32> descriptions = 5;
+}
+
+message FlasksOnBar {
+    repeated string flask_base_names = 1;
+    repeated int32 can_use_flask = 2;
+    repeated int32 flask_indexes = 3;
+}
+
+message PlayerInfo_c {
+    repeated int32 grid_position = 1;
+    repeated int32 life_component = 2;
+    repeated string buffs = 3;
+    repeated string debuffs = 4;
+    int32 is_moving = 5;
+    int32 lvl = 6;
+}
+
+message MinimapIcon_c {
+    int32 id = 1;
+    string path = 2;
+    string name = 3;
+    int32 is_visible = 4;
+    int32 is_hidden = 5;
+}
+
+message Entity_c {
+    repeated int32 location_on_screen = 1;
+    string path = 2;
+    string rarity = 3;
+    int32 id = 4;
+    int32 is_opened = 5;
+    int32 is_hostile = 6;
+    int32 is_attackable = 7;
+    int32 is_targetable = 8;
+    int32 is_targeted = 9;
+    int32 essenced_mob = 10;
+    int32 bound_center_pos = 11;
+    repeated int32 grid_position = 12;
+    repeated int32 world_position = 13;
+    repeated int32 life_component = 14;
+    string render_name = 15;
+    string entity_type = 16;
+}
+
+message VisibleLabelEntity_c {
+    repeated int32 location_on_screen = 1;
+    string path = 2;
+    int32 id = 3;
+    int32 is_targetable = 4;
+    int32 bound_center_pos = 5;
+    repeated int32 grid_position = 6;
+    repeated int32 world_position = 7;
+    string render_name = 8;
+    string entity_type = 9;
+}
+
+message ItemOnGroundLabel_c {
+    int32 id = 1;
+    repeated int32 greed_position = 2;
+    repeated int32 screen_zone = 3;
+    string animated_property_metadata = 4;
+    string rarity = 5;
+    int32 is_targetable = 6;
+    int32 is_targeted = 7;
+    string displayed_name = 8;
+}
+
+message QuestState_c {
+    string id = 1;
+    int32 state = 2;
+}
+
+message GetDataObject {
+    int32 broken_response = 1;
+    int32 game_state = 2;
+    repeated int32 window_borders = 3;
+    repeated int32 mouse_cursor_pos = 4;
+    string terrain_string = 5;
+    uint32 area_hash = 6;
+    repeated Entity_c awake_entities = 7;
+    repeated VisibleLabelEntity_c visible_labels = 8;
+    repeated ItemOnGroundLabel_c item_labels = 9;
+    PlayerInfo_c player_info = 10;
+    bool invites_panel_visible = 11;
+    bool IsLoading = 12;
+    bool IsLoading_b = 13;
+    string area_raw_name = 14;
+    FlasksOnBar flasks = 15;
+    SkillsOnBar_c skills = 16;
+}
+
+message InventoryObjectCustom_c {
+    string Name = 1;
+    string a = 2;
+    string unique_name = 3;
+    string rarity = 4;
+    int32 map_tier = 5;
+    int32 is_corrupted = 6;
+    int32 is_identified = 7;
+    string RenderArt = 8;
+    int32 items_in_stack = 9;
+    repeated string item_mods = 10;
+    repeated string item_mods_raw = 11;
+    repeated string l = 12;
+    repeated int32 grid_position = 13;
+    repeated int32 screen_zone = 14;
+    repeated string tooltip_texts = 15;
+    GridPosition_generated TopLeft = 16;
+    GridPosition_generated BottomRight = 17;
+}
+
+message WorldMapEndGameMapObj {
+    repeated int32 screen_zone = 1;
+    int32 id = 2;
+    string name = 3;
+    string name_raw = 4;
+    repeated string icons = 5;
+    int32 can_run = 6;
+}
+
+message GetMapDeviceInfoObject {
+    bool atlas_panel_opened = 1;
+    bool world_map_opened = 2;
+    repeated WorldMapEndGameMapObj availiable_maps = 3;
+    bool place_map_window_is_opened = 4;
+    repeated int32 place_map_window_screen_zone = 5;
+    string place_map_window_text = 6;
+    repeated InventoryObjectCustom_c placed_items = 7;
+    repeated int32 place_map_window_activate_button_screen_zone = 8;
+    repeated int32 ziggurat_button_screen_zones = 9;
+    repeated int32 realmgate_screenzones = 10;
+}
+
+message GetOpenedStashInfoObject {
+    string status = 1;
+    bool is_opened = 2;
+    repeated int32 location_on_screen = 3;
+    repeated int32 tab_buttons_screen_zones = 4;
+    string stash_tab_type = 5;
+    int32 total_stash_tab_count = 6;
+    int32 tab_index = 7;
+    repeated InventoryObjectCustom_c items = 8;
+}
+
+message GridPosition_generated {
+    int32 X = 1;
+    int32 Y = 2;
+}
+
+message LocationOnScreen_generated {
+    int32 X = 1;
+    int32 Y = 2;
+}
+
+message GemToLevelInfo {
+    LocationOnScreen_generated center_location = 1;
+    int32 width = 2;
+    int32 height = 3;
+}

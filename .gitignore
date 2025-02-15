@@ -11,3 +11,5 @@
 **/obj/
 
 **/venv/
+**/ShareData.csproj.user
+**/PublishProfiles/**
