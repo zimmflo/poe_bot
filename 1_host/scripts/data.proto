@@ -170,17 +170,29 @@ message VisibleLabel {
 }
 
 message SkillsOnBar_c {
-    repeated int32 can_be_used = 1;
-    repeated int32 casts_per_100_seconds = 2;
-    repeated int32 total_uses = 3;
-    repeated string internal_name = 4;
-    map<string, int32> descriptions = 5;
+  repeated int32 can_be_used = 1;
+  repeated int32 casts_per_100_seconds = 2;
+  repeated int32 total_uses = 3;
+  repeated string internal_name = 4;
+  repeated DescriptionList descriptions = 5;
+}
+
+message DescriptionList {
+  repeated DescriptionEntry entries = 1; 
+}
+
+message DescriptionEntry {
+  map<string, int32> data = 1; 
 }
 
 message FlasksOnBar {
     repeated string flask_base_names = 1;
     repeated int32 can_use_flask = 2;
     repeated int32 flask_indexes = 3;
+}
+
+message EntityId_c {
+    int32 id = 1;
 }
 
 message PlayerInfo_c {
@@ -247,12 +259,18 @@ message QuestState_c {
     int32 state = 2;
 }
 
+message Quests_c {
+    string id = 1;
+    string name = 2;
+    int32 state = 3;
+}
+
 message GetDataObject {
     int32 broken_response = 1;
     int32 game_state = 2;
     repeated int32 window_borders = 3;
     repeated int32 mouse_cursor_pos = 4;
-    string terrain_string = 5;
+    optional string terrain_string = 5;
     uint32 area_hash = 6;
     repeated Entity_c awake_entities = 7;
     repeated VisibleLabelEntity_c visible_labels = 8;
@@ -282,8 +300,8 @@ message InventoryObjectCustom_c {
     repeated int32 grid_position = 13;
     repeated int32 screen_zone = 14;
     repeated string tooltip_texts = 15;
-    GridPosition_generated TopLeft = 16;
-    GridPosition_generated BottomRight = 17;
+    GridPosition TopLeft = 16;
+    GridPosition BottomRight = 17;
 }
 
 message WorldMapEndGameMapObj {
@@ -293,6 +311,10 @@ message WorldMapEndGameMapObj {
     string name_raw = 4;
     repeated string icons = 5;
     int32 can_run = 6;
+}
+
+message AtlasProgess_c {
+    string empty = 1;
 }
 
 message GetMapDeviceInfoObject {
@@ -319,18 +341,26 @@ message GetOpenedStashInfoObject {
     repeated InventoryObjectCustom_c items = 8;
 }
 
-message GridPosition_generated {
+message GridPosition {
     int32 X = 1;
     int32 Y = 2;
 }
 
-message LocationOnScreen_generated {
+message LocationOnScreen {
     int32 X = 1;
     int32 Y = 2;
 }
 
 message GemToLevelInfo {
-    LocationOnScreen_generated center_location = 1;
+    LocationOnScreen center_location = 1;
     int32 width = 2;
     int32 height = 3;
+}
+
+message WaypointUnlockState {
+    bool state = 1;
+}
+
+message Status {
+    string Message = 1;
 }

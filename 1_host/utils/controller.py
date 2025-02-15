@@ -7,7 +7,7 @@ import time
 
 
 class VMHostPuppeteer:
-  def __init__(self, host: str, port=50007, debug=False) -> None:
+  def __init__(self, host: str, port=55006, debug=False) -> None:
     self.host = host
     self.port = port
     self.debug = debug
