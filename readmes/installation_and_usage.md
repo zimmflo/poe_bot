@@ -19,7 +19,7 @@ OR
 ## How to install:
 - install python - 1_host/scripts/1_install_python.bat
 - install libraries - 1_host/scripts/2_install_venv.bat
-<!-- install VC 2015 Redistributable https://www.microsoft.com/en-US/download/details.aspx?id=48145 -->
+- install VC 2015 Redistributable https://www.microsoft.com/en-US/download/details.aspx?id=48145
 
 ## Important:
 - be sure to disable firewall and disable turning off the monitor

@@ -21,7 +21,7 @@ public partial class ShareData
     public List<float> getScreenPos(int grid_x, int grid_y)
     {
         // https://www.ownedcore.com/forums/mmo/path-of-exile/894162-finding-map-data-memory.html
-        List<float> coords = new List<float>();
+        List<float> coords = [];
         // Core.States.InGameStateObject.CurrentAreaInstance.Player.TryGetComponent<Render>(out var r);
         var height = GameController.EntityListWrapper.Player.Pos.Z;//r.TerrainHeight
         try
@@ -54,7 +54,7 @@ public partial class ShareData
         return coords;
 
     }
-    public string serializeEntityType(string entity_type)
+    public static string serializeEntityType(string entity_type)
     {
         string return_val = entity_type;
         if (entity_type == "Monster")
@@ -85,7 +85,7 @@ public partial class ShareData
     }
     public List<Entity_c> getAwakeEntities()
     {
-        List<Entity_c> awake_entities = new List<Entity_c>();
+        List<Entity_c> awake_entities = [];
         foreach (var obj in GameController.EntityListWrapper.Entities)
         {
             // ignore invalid or temp objects
@@ -331,7 +331,7 @@ public partial class ShareData
         }
         return awake_entities;
     }
-    public List<string> TraverseElementsBFS(Element root)
+    public static List<string> TraverseElementsBFS(Element root)
     {
         var result = new List<string>();
         if (root == null) return result;
@@ -390,7 +390,7 @@ public partial class ShareData
             response.TabIndex = stash_tab_index;
             response.TotalStashTabCount = (int)GameController.IngameState.IngameUi.StashElement.TotalStashes;
             response.StashTabType = GameController.IngameState.IngameUi.StashElement.AllInventories[stash_tab_index].InvType.ToString();
-            List<InventoryObjectCustom_c> items = new List<InventoryObjectCustom_c>();
+            List<InventoryObjectCustom_c> items = [];
 
             response.TabButtonsScreenZones.Clear();
             foreach (var switch_el in GameController.IngameState.IngameUi.StashElement.Children[2].Children[0].Children[0].Children[1].Children[0].Children)
@@ -421,8 +421,8 @@ public partial class ShareData
                     }
                     InventoryObjectCustom_c generated_inventory_object = convertItem(item);
 
-                    GridPosition_generated BottomRight = new GridPosition_generated();
-                    GridPosition_generated TopLeft = new GridPosition_generated();
+                    GridPosition BottomRight = new GridPosition();
+                    GridPosition TopLeft = new GridPosition();
                     TopLeft.X = (int)normal_inventory_item.GetClientRect().TopLeft.X;
                     TopLeft.Y = (int)normal_inventory_item.GetClientRect().TopLeft.Y;
                     BottomRight.X = (int)normal_inventory_item.GetClientRect().BottomRight.X;
@@ -455,7 +455,7 @@ public partial class ShareData
             inventory_info.IsOpened = false;
         }
 
-        List<InventoryObjectCustom_c> items = new List<InventoryObjectCustom_c>();
+        List<InventoryObjectCustom_c> items = [];
         foreach (var normal_inventory_item in GameController.IngameState.Data.ServerData.PlayerInventories[0].Inventory.InventorySlotItems)
         {
             var item = normal_inventory_item.Item;
@@ -693,19 +693,19 @@ public partial class ShareData
         // current orders
         return auction_house_ui;
     }
-    public List<int> getListOfIntFromElRect(Element el)
+    public static List<int> getListOfIntFromElRect(Element el)
     {
         var el_rect = el.GetClientRect();
-        return new List<int> {
+        return [
             (int)el_rect.X,
             (int)(el_rect.X + el_rect.Width),
             (int)el_rect.Y,
             (int)(el_rect.Y + el_rect.Height),
-        };
+        ];
     }
     public List<MinimapIcon_c> getMinimapIcons()
     {
-        List<MinimapIcon_c> awake_entities = new List<MinimapIcon_c>();
+        List<MinimapIcon_c> awake_entities = [];
         foreach (var obj in GameController.EntityListWrapper.Entities)
         {
             // ignore invalid or temp objects
@@ -902,9 +902,9 @@ public partial class ShareData
         }
         return el;
     }
-    public int? getEntityIdByPlayerName(string player_name)
+    public int getEntityIdByPlayerName(string player_name)
     {
-        int? player_id = null;
+        int player_id = 0;
         foreach (var entity in GameController.EntityListWrapper.Entities)
         {
             var entity_player_component = entity.GetComponent<Player>();
@@ -1034,18 +1034,18 @@ public partial class ShareData
         });
         return el;
     }
-    public List<string> getAtlasProgress()
+    public static List<AtlasProgess_c> getAtlasProgress()
     {
         // returns list of strings of completed maps
-        List<string> finished_maps = new List<string>();
+
         // foreach (var finished_map in GameController.IngameState.Data.ServerData.BonusCompletedAreas){
         //     finished_maps.Add(finished_map.Name);
         // }
-        return finished_maps;
+        return [];
     }
     public List<QuestState_c> getQuestStates()
     {
-        List<QuestState_c> quest_states = new List<QuestState_c>();
+        List<QuestState_c> quest_states = [];
         // var updated_quest_states = GameController.IngameState.IngameUi.GenerateQuestStates();
         var updated_quest_states = GameController.IngameState.IngameUi.GetQuests;
         DebugWindow.LogMsg("updated_quest_states type is: ");
@@ -1065,7 +1065,7 @@ public partial class ShareData
     }
     public List<ItemOnGroundLabel_c> getItemsOnGroundLabelsVisible()
     {
-        List<ItemOnGroundLabel_c> visible_labels = new List<ItemOnGroundLabel_c>();
+        List<ItemOnGroundLabel_c> visible_labels = [];
         foreach (var label in GameController.IngameState.IngameUi.ItemsOnGroundLabelElement.LabelsOnGroundVisible)
         {
             if (label.ItemOnGround.Path != "Metadata/MiscellaneousObjects/WorldItem")
@@ -1123,7 +1123,7 @@ public partial class ShareData
     }
     public List<VisibleLabel> getVisibleLabels()
     {
-        List<VisibleLabel> visible_labels = new List<VisibleLabel>();
+        List<VisibleLabel> visible_labels = [];
 
         foreach (var label in GameController.IngameState.IngameUi.ItemsOnGroundLabelElement.LabelsOnGroundVisible)
         {
@@ -1298,7 +1298,7 @@ public partial class ShareData
     }
     public List<VisibleLabelEntity_c> getVisibleLabelOnGroundEntities()
     {
-        List<VisibleLabelEntity_c> visible_labels = new List<VisibleLabelEntity_c>();
+        List<VisibleLabelEntity_c> visible_labels = [];
         foreach (var label in GameController.IngameState.IngameUi.ItemsOnGroundLabelElement.LabelsOnGroundVisible)
         {
             var obj = label.ItemOnGround;
@@ -1440,7 +1440,18 @@ public partial class ShareData
                 }
                 foreach (var stat in stats_list)
                 {
-                    skill_bars.Descriptions.Add(stat);
+                    var descriptionList = new DescriptionList();
+
+                    foreach (var dictionary in stat)
+                    {
+                        var entry = new DescriptionEntry();
+                        var kvp = dictionary;
+                        {
+                            entry.Data.Add(kvp.Key, kvp.Value);
+                        }
+                        descriptionList.Entries.Add(entry);
+                    }
+                    skill_bars.Descriptions.Add(descriptionList);
                 }
             }
         }
@@ -1476,7 +1487,7 @@ public partial class ShareData
         }
         return flasks_info;
     }
-    private InventoryObjectCustom_c convertItem(ExileCore2.PoEMemory.MemoryObjects.Entity orig_item)
+    private static InventoryObjectCustom_c convertItem(ExileCore2.PoEMemory.MemoryObjects.Entity orig_item)
     {
         InventoryObjectCustom_c converted_item = new InventoryObjectCustom_c();
         converted_item.RenderArt = orig_item.Metadata;
@@ -1551,7 +1562,7 @@ public partial class ShareData
         }
 
 
-        List<WorldMapEndGameMapObj> avaliable_maps = new List<WorldMapEndGameMapObj>();
+        List<WorldMapEndGameMapObj> avaliable_maps = [];
         var maps = atlas_panel_object.Descriptions;
         foreach (var tile in maps)
         {
@@ -1626,7 +1637,7 @@ public partial class ShareData
 
 
                 var items_placed_in_map_device_parent = place_map_window_element.Children[1].Children[6].Children[0];
-                List<InventoryObjectCustom_c> items = new List<InventoryObjectCustom_c>();
+                List<InventoryObjectCustom_c> items = [];
                 int i_start = 1;
                 int i_end = items_placed_in_map_device_parent.Children.Count;
                 // get info about items in slots
@@ -1690,7 +1701,7 @@ public partial class ShareData
     }
     public List<string> getPreloadedFiles()
     {
-        List<string> preloaded_files_arr = new List<string>();
+        List<string> preloaded_files_arr = [];
         var memory = GameController.Memory;
         FilesFromMemory filesFromMemory = new FilesFromMemory(memory);
         var AllFiles = filesFromMemory.GetAllFilesSync();
@@ -1706,9 +1717,9 @@ public partial class ShareData
         }
         return preloaded_files_arr;
     }
-    public List<GemToLevelInfo> getGemsToLevelInfo()
+    public static List<GemToLevelInfo> getGemsToLevelInfo()
     {
-        List<GemToLevelInfo> gems_to_level = new List<GemToLevelInfo>();
+        List<GemToLevelInfo> gems_to_level = [];
         // foreach (var gem in GameController.IngameState.IngameUi.GemLvlUpPanel.GemsToLvlUp){
         //     GemToLevelInfo gem_instance = new GemToLevelInfo();
         //     gem_instance.center_location = new LocationOnScreen_generated();

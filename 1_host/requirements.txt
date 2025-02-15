@@ -5,5 +5,8 @@ numpy==2.2.2
 pywin32==308
 opencv-python==4.11.0.86
 requests==2.32.3
+protobuf==5.29.3
 pyastar2d==1.0.6
 jupyter==1.1.1
+lz4==4.4.3
+xxhash==3.5.0
